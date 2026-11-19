@@ -111,16 +111,9 @@ WaveDesk checks the [Releases](https://github.com/Jeansenekal-tech/rf-microphone
 of this repository (at most every 6 hours, or *WaveDesk › Check for Updates…*). It downloads
 `WaveDesk.zip`, replaces the app and restarts.
 
-To publish a new version, push a tag. GitHub Actions builds a universal (Apple Silicon + Intel)
-app and attaches it to a release:
-
-```bash
-git tag v0.2.0
-```
-
-```bash
-git push origin v0.2.0
-```
+To publish a new version, raise `CFBundleShortVersionString` in `Resources/Info.plist`
+(e.g. `0.1.0` → `0.2.0`) and push to `main`. GitHub Actions builds a universal
+(Apple Silicon + Intel) app and publishes it as release `v0.2.0`. Pushing a `v*` tag works too.
 
 The app is signed ad-hoc (not notarized). If macOS refuses to open a copy downloaded with a browser,
 right-click › Open, or remove the quarantine flag:
