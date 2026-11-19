@@ -102,6 +102,21 @@ final class CoordinatorTests: XCTestCase {
         }
     }
 
+    func testPerReceiverTuningLimits() {
+        var s = CoordSettings()
+        s.startMHz = 470; s.stopMHz = 700
+        // Receiver A tunes 470-534 in 25 kHz steps, receiver B 606-662 in 125 kHz steps, C unrestricted.
+        let a = TuningLimit(lowKHz: 470_000, highKHz: 534_000, stepKHz: 25)
+        let b = TuningLimit(lowKHz: 606_000, highKHz: 662_000, stepKHz: 125)
+        let r = Coordinator.coordinate(targets: [[0], [0], [0], [0], [0]], fixed: [], segmentCount: 1, settings: s,
+                                       limits: [a, a, b, b, nil])
+        XCTAssertEqual(r.compactMap { $0 }.count, 5)
+        for k in [r[0]!, r[1]!] { XCTAssertTrue(a.allows(k)) }
+        for k in [r[2]!, r[3]!] { XCTAssertTrue((606_000...662_000).contains(k)); XCTAssertEqual(k % 125, 0) }
+        let items = r.compactMap { $0 }.enumerated().map { NamedFrequency(label: "c\($0.offset)", kHz: $0.element) }
+        XCTAssertEqual(Coordinator.analyze(items, settings: s), [])
+    }
+
     func testTimeOfUseAllowsReuse() {
         var s = CoordSettings()
         s.startMHz = 470; s.stopMHz = 470.4; s.use3Tx = false; s.use5th = false

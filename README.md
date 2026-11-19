@@ -1,7 +1,7 @@
 # WaveDesk – wireless mic control & RF scanning for macOS
 
 A native macOS app (SwiftUI, no browser) for running wireless microphone systems:
-control **Shure** (including older UHF-R) and **Sennheiser** receivers over the network, scan with a **tinySA Ultra**,
+control **Shure** (including older UHF-R) and **Sennheiser** receivers over the network, plan **Wisycom**, **Sound Devices** and **Deity** alongside them, scan with a **tinySA Ultra**,
 coordinate intermod-free frequencies, and keep an eye on everything during the show.
 
 > Status: first version, written without access to the hardware. The protocol, parsing and
@@ -12,6 +12,8 @@ coordinate intermod-free frequencies, and keep an eye on everything during the s
 
 | Area | What it does |
 |---|---|
+| **Other brands** | Wisycom, Sound Devices Astral and Deity THEOS as manually entered receivers (their makers publish no control protocol), so mixed-brand shows are coordinated together. |
+| **Tuning ranges** | Optional per-receiver tuning range and step (e.g. Shure G50 470–534 MHz, 25 kHz). Coordination only proposes frequencies each receiver can tune to. |
 | **Device control** | Live name, frequency, gain, mute, RF A/B, audio meters, battery bars/minutes. Edit name/frequency/group per channel. Auto-reconnect. Finds Shure receivers on the local network. |
 | **Spectrum** | Live tinySA Ultra trace, peak hold, **waterfall**, overlays of saved/imported scans, TV-channel grid, restricted bands, channel markers, intermod products, hover read-out. |
 | **Other scanners** | Import scans exported from **Shure Wireless Workbench** (AXT600 or receiver scans), **Sennheiser WSM**, SoundBase, RF Explorer, tinySA-App (CSV/TXT, MHz/kHz/Hz auto-detected). Live drivers plug into `SpectrumSource`. |
@@ -135,7 +137,12 @@ Updates installed by the app itself aren't affected by this.
 | Sennheiser Digital 6000 | SSC v1, JSON over UDP 45 | **Experimental.** |
 | tinySA / tinySA Ultra | USB serial shell (`scan` command) | Public protocol. |
 | Shure AXT600, receiver-based scans, Sennheiser WSM scans | Not public | Use **Import** with CSV exported from WWB / WSM. A live driver can be added in `SpectrumSources.swift` if the protocol becomes available. |
-| Wisycom, Sound Devices | – | Not supported yet. |
+| Wisycom (MRK16, MCR54, MRK960…) | No public protocol (Wisycom Manager only) | **Manual entry**: channels typed in and saved with the project; part of coordination, conflicts, spectrum, monitor. Set frequencies on the receiver. |
+| Sound Devices Astral (A20-Nexus, A20-RX…) | No public API (built-in web app) | **Manual entry**, plus *Open web control* for the A20-Nexus web app at its IP. |
+| Deity THEOS (D2RX, D4RX…) | No network port (Bluetooth / Sidus Audio app) | **Manual entry**. |
+
+If Wisycom, Sound Devices or Deity publish (or share) a control protocol, a live driver can be
+added in the same way as the Shure and Sennheiser ones.
 
 > Spectrum rules change. The region data is a planning aid: always confirm with your
 > regulator (ICASA, FCC, Ofcom…) and the licences you hold.
@@ -153,7 +160,7 @@ Updates installed by the app itself aren't affected by this.
 ```
 Sources/WaveDeskCore/   protocols, parsers, regions, schedule, frequency coordination (unit-tested)
 Sources/WaveDesk/       the macOS app
-  ShureDevice, UHFRDevice, SennheiserDevices, EWDXDevice, DemoDevice   receiver drivers
+  ShureDevice, UHFRDevice, SennheiserDevices, EWDXDevice, ManualDevice, DemoDevice   receivers
   SerialPort, SpectrumSources, AnalyzerController          tinySA + scanning + waterfall
   AppState, Health, Telemetry, ScanLibrary, Inventory      app logic and storage
   HTTPServer, RemoteController, MonitorPage, Updater       web monitor, Companion API, updates

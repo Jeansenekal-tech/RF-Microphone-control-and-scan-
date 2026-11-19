@@ -110,9 +110,17 @@ final class AppState: ObservableObject {
 
     // MARK: Devices
 
-    func addDevice(kind: DeviceKind, host: String, nickname: String, password: String? = nil) {
-        let d = Device.make(DeviceConfig(kind: kind, host: host.trimmingCharacters(in: .whitespaces),
-                                         nickname: nickname, password: password))
+    func addDevice(kind: DeviceKind, host: String, nickname: String, password: String? = nil,
+                   model: String? = nil, channelCount: Int = 1,
+                   tuneLowMHz: Double? = nil, tuneHighMHz: Double? = nil, tuneStepKHz: Int? = nil) {
+        var cfg = DeviceConfig(kind: kind, host: host.trimmingCharacters(in: .whitespaces),
+                               nickname: nickname, password: password,
+                               tuneLowMHz: tuneLowMHz, tuneHighMHz: tuneHighMHz, tuneStepKHz: tuneStepKHz)
+        if kind.isManual {
+            cfg.model = model
+            cfg.manualChannels = (1...max(1, min(16, channelCount))).map { ManualChannel(name: "CH \($0)", freqKHz: nil) }
+        }
+        let d = Device.make(cfg)
         attach(d)
         devices.append(d)
         d.start()
@@ -129,6 +137,13 @@ final class AppState: ObservableObject {
         recomputeMarkers()
     }
 
+    func setTuning(_ d: Device, low: Double?, high: Double?, step: Int?) {
+        d.tuneLowMHz = low
+        d.tuneHighMHz = high
+        d.tuneStepKHz = step
+        scheduleSave()
+    }
+
     func rename(_ d: Device, nickname: String) {
         d.nickname = nickname
         scheduleSave()
@@ -136,7 +151,11 @@ final class AppState: ObservableObject {
     }
 
     private func attach(_ d: Device) {
-        d.onIdentityChange = { [weak self] in self?.scheduleRecompute() }
+        let manual = d.kind.isManual
+        d.onIdentityChange = { [weak self] in
+            self?.scheduleRecompute()
+            if manual { self?.scheduleSave() }   // manual channels only live in the project file
+        }
     }
 
     private func scheduleRecompute() {
@@ -210,6 +229,7 @@ final class AppState: ObservableObject {
         targets.sort { $0.current < $1.current }
         let tgt = targets, fx = fixed
         let masks = tgt.map { mask($0.key) }
+        let limits: [TuningLimit?] = tgt.map { lookup($0.key)?.0.tuning }
         let snap = analyzer.snapshot
         let s = project.coord, reg = region
         let useScan = s.useScan && !snap.isEmpty
@@ -217,7 +237,7 @@ final class AppState: ObservableObject {
         coordMessage = "Calculating…"
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             let freqs = Coordinator.coordinate(
-                targets: masks, fixed: fx, segmentCount: segs.count, settings: s, region: reg,
+                targets: masks, fixed: fx, segmentCount: segs.count, settings: s, region: reg, limits: limits,
                 level: useScan ? { snap.maxLevel(fromKHz: Double($0), toKHz: Double($1)) } : nil)
             DispatchQueue.main.async {
                 guard let self else { return }

@@ -73,8 +73,17 @@ struct ChannelCard: View {
                 HStack {
                     Text("→ \(fmtMHz(p))").font(.callout.monospacedDigit()).foregroundColor(.accentColor)
                     Spacer()
-                    Button("Apply") { state.applyProposal(key) }.controlSize(.small)
+                    Button(device.kind.isManual ? "Done" : "Apply") { state.applyProposal(key) }
+                        .controlSize(.small)
+                        .help(device.kind.isManual ? "Set this frequency on the receiver, then click Done" : "Send to the receiver")
                 }
+                if device.kind.isManual {
+                    Text("Set this on the \(device.kind.short) receiver by hand").font(.caption2).foregroundStyle(.orange)
+                }
+            }
+            if device.kind.isManual {
+                Label("Manual entry – not network controlled", systemImage: "hand.point.up.left")
+                    .font(.caption2).foregroundStyle(.secondary)
             }
 
             MeterBar(label: "RF A", value: c.rfA, lo: -100, hi: -20, color: c.antenna.contains("A") ? .blue : .blue.opacity(0.5))

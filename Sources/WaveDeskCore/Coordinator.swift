@@ -36,6 +36,22 @@ public struct CoordSettings: Codable, Equatable {
     }
 }
 
+/// What one receiver can tune to. Frequencies must lie within low...high and on a multiple of step.
+public struct TuningLimit: Equatable {
+    public var lowKHz: Int?
+    public var highKHz: Int?
+    public var stepKHz: Int?
+    public init(lowKHz: Int? = nil, highKHz: Int? = nil, stepKHz: Int? = nil) {
+        self.lowKHz = lowKHz; self.highKHz = highKHz; self.stepKHz = stepKHz
+    }
+    public func allows(_ kHz: Int) -> Bool {
+        if let l = lowKHz, kHz < l { return false }
+        if let h = highKHz, kHz > h { return false }
+        if let st = stepKHz, st > 0, kHz % st != 0 { return false }
+        return true
+    }
+}
+
 public struct NamedFrequency: Equatable {
     public var label: String
     public var kHz: Int
@@ -68,9 +84,11 @@ public enum Coordinator {
     /// Carriers only need to be compatible with carriers that are on air at the same time,
     /// so groups that never overlap can share frequencies.
     /// Returns one frequency (kHz) per target, or nil where none could be found.
+    /// `limits[i]` (optional) restricts target i to what that receiver can tune to.
     public static func coordinate(targets: [Set<Int>], fixed: [(kHz: Int, active: Set<Int>)],
                                   segmentCount: Int, settings s: CoordSettings,
                                   region: RegionProfile? = nil,
+                                  limits: [TuningLimit?]? = nil,
                                   level: ((Int, Int) -> Double?)? = nil,
                                   timeBudget: TimeInterval = 1.5) -> [Int?] {
         let none = [Int?](repeating: nil, count: targets.count)
@@ -118,7 +136,8 @@ public enum Coordinator {
             var found = 0
             for (ti, mask) in targets.enumerated() {
                 let tsegs = segs(mask, segCount)
-                for c in order where tsegs.allSatisfy({ plans[$0].accepts(c) }) {
+                let limit = (limits != nil && ti < limits!.count) ? limits![ti] : nil
+                for c in order where (limit?.allows(c) ?? true) && tsegs.allSatisfy({ plans[$0].accepts(c) }) {
                     for seg in tsegs { plans[seg].add(c) }
                     assign[ti] = c
                     found += 1
