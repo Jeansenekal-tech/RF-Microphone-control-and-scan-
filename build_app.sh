@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds WaveDesk.app (native macOS app) into ./build
+# Builds "Unique AV RF Scan Co-ord.app" (native macOS app) into ./build
 #
 #   ./build_app.sh                      build for this Mac
 #   UNIVERSAL=1 ./build_app.sh          Apple Silicon + Intel (needs full Xcode)
@@ -16,13 +16,15 @@ echo "▸ Building release binary…"
 swift build -c release "${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"}"
 BIN="$(swift build -c release "${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"}" --show-bin-path)/WaveDesk"
 
-APP="build/WaveDesk.app"
+APP="build/Unique AV RF Scan Co-ord.app"
 echo "▸ Assembling ${APP}…"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/WaveDesk"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
-[ -f Resources/AppIcon.icns ] && cp Resources/AppIcon.icns "$APP/Contents/Resources/"
+if [ -d Resources/AppIcon.iconset ]; then
+  iconutil -c icns Resources/AppIcon.iconset -o "$APP/Contents/Resources/AppIcon.icns"
+fi
 
 if [ -n "${VERSION:-}" ]; then
   /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString $VERSION" "$APP/Contents/Info.plist"

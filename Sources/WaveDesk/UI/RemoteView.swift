@@ -70,7 +70,7 @@ struct RemoteView: View {
 
                     SectionBox(title: "Software update") {
                         HStack {
-                            Text("WaveDesk \(Updater.currentVersion)")
+                            Text("\(AppInfo.name) \(Updater.currentVersion)")
                             Spacer()
                             Button(updater.busy ? "Checking…" : "Check now") { updater.check(userInitiated: true) }
                                 .disabled(updater.busy)

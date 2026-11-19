@@ -4,11 +4,12 @@ import Foundation
 enum MonitorPage {
     static let locked = #"""
     <!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>WaveDesk Monitor</title>
+    <title>Unique AV RF Scan Co-ord – Monitor</title>
+    <link rel="icon" href="/icon.png">
     <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0d0f12;color:#e7eaee;
     font:16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;text-align:center;padding:16px}</style></head>
-    <body><div><h2>WaveDesk Monitor</h2><p>This link needs an access key.<br>
-    Scan the QR code in WaveDesk › Remote on the Mac.</p></div></body></html>
+    <body><div><img src="/icon.png" width="72" height="72" alt=""><h2>Unique AV RF Scan Co-ord</h2><p>This link needs an access key.<br>
+    Scan the QR code on the Remote &amp; Companion page on the Mac.</p></div></body></html>
     """#
 
     static let html = #"""
@@ -19,7 +20,10 @@ enum MonitorPage {
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#0d0f12">
-    <title>WaveDesk Monitor</title>
+    <title>Unique AV RF Scan Co-ord – Monitor</title>
+    <link rel="icon" href="/icon.png">
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+    <meta name="apple-mobile-web-app-title" content="UAV RF Monitor">
     <style>
     :root{--bg:#0d0f12;--card:#171a1f;--line:#262b33;--text:#e7eaee;--dim:#8b939e;--green:#34c759;--blue:#3d8bfd;
     --orange:#ff9f0a;--red:#ff453a;--yellow:#ffd60a}
@@ -71,7 +75,8 @@ enum MonitorPage {
     </head>
     <body>
     <header>
-      <h1 id="title">WaveDesk <span class="sub"></span></h1>
+      <img src="/icon.png" width="30" height="30" alt="" style="flex:none">
+      <h1 id="title">Unique AV RF Scan Co-ord <span class="sub"></span></h1>
       <span id="scan" class="pill">Analyzer</span>
       <span id="health" class="pill ok">OK</span>
     </header>
@@ -108,7 +113,7 @@ enum MonitorPage {
 
     function render(s){
       control = s.control; scanning = s.analyzer.scanning;
-      document.title = s.project + ' – WaveDesk';
+      document.title = s.project + ' – ' + s.app;
       document.getElementById('title').innerHTML = esc(s.project) + ' <span class="sub">' + esc([s.venue, s.region].filter(Boolean).join(' · ')) + '</span>';
       const sc = document.getElementById('scan');
       sc.textContent = s.analyzer.scanning ? 'Scanning' : s.analyzer.connected ? 'Analyzer ready' : 'No analyzer';
@@ -179,7 +184,7 @@ enum MonitorPage {
         const s = await (await api('/api/state')).json();
         render(s); failures = 0; document.getElementById('conn').style.display = 'none';
       } catch (e) {
-        if (e.message === '401') { document.body.innerHTML = '<p style="padding:24px">Access key changed – scan the new QR code in WaveDesk.</p>'; return; }
+        if (e.message === '401') { document.body.innerHTML = '<p style="padding:24px">Access key changed – scan the new QR code on the Mac.</p>'; return; }
         if (++failures > 2) document.getElementById('conn').style.display = 'block';
       }
     }

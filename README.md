@@ -1,4 +1,13 @@
-# WaveDesk – wireless mic control & RF scanning for macOS
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="Resources/Logo/Logo-dark.png">
+    <img src="Resources/Logo/Logo.png" alt="Unique AV RF Scan Co-ord" width="560">
+  </picture>
+</p>
+
+# Unique AV RF Scan Co-ord
+
+Wireless mic control & RF scanning for macOS
 
 A native macOS app (SwiftUI, no browser) for running wireless microphone systems:
 control **Shure** (including older UHF-R) and **Sennheiser** receivers over the network, plan **Wisycom**, **Sound Devices** and **Deity** alongside them, scan with a **tinySA Ultra**,
@@ -26,7 +35,7 @@ coordinate intermod-free frequencies, and keep an eye on everything during the s
 | **Inventory** | Equipment list (make, model, serial, tag, band), check-out/check-in with a log, totals per model, CSV export. |
 | **Phone / tablet monitor** | Built-in web page with every channel live (frequency, RF, audio, battery, alerts) and the spectrum. Open it by scanning the QR code on the *Remote & Companion* page. Optional mute/scan control. |
 | **Bitfocus Companion** | HTTP API for Stream Deck buttons through Companion's *Generic HTTP Requests* module: mute/unmute, gain, start/stop scan, find and apply frequencies, plus plain-text values (battery, RF, mute, alerts) for feedback. |
-| **Auto update** | Checks this repo's GitHub Releases, downloads the new version, replaces the app and restarts it (*WaveDesk › Check for Updates…*). |
+| **Auto update** | Checks this repo's GitHub Releases, downloads the new version, replaces the app and restarts it (*Unique AV RF Scan Co-ord › Check for Updates…*). |
 | **Regions** | **South Africa** (8 MHz UHF Ch21–69, IMT700/IMT800 mobile bands blocked, 470–694 MHz default), United States (6 MHz, Ch37 + 600 MHz mobile blocked), Europe/CEPT. |
 
 ## Build and run (on your Mac)
@@ -44,10 +53,10 @@ Then in this folder:
 ```
 
 ```bash
-open build/WaveDesk.app
+open "build/Unique AV RF Scan Co-ord.app"
 ```
 
-Drag `build/WaveDesk.app` into **Applications** to keep it. The first time it connects to a
+Drag `build/Unique AV RF Scan Co-ord.app` into **Applications** to keep it. The first time it connects to a
 receiver, macOS asks for **Local Network** access. Click *Allow*.
 
 To work on the code, open `Package.swift` in Xcode and press Run. Run the unit tests with:
@@ -59,7 +68,7 @@ swift test
 To try everything without hardware (a demo receiver plus the simulated analyzer, already scanning):
 
 ```bash
-open build/WaveDesk.app --args --demo
+open "build/Unique AV RF Scan Co-ord.app" --args --demo
 ```
 
 ## Quick start
@@ -77,9 +86,9 @@ open build/WaveDesk.app --args --demo
 
 ### tinySA tips
 
-* WaveDesk splits wide spans into 450-point sweeps (the Ultra's maximum) on an exact grid.
+* Unique AV RF Scan Co-ord splits wide spans into 450-point sweeps (the Ultra's maximum) on an exact grid.
 * 25 kHz step and RBW *Auto* or 30–100 kHz work well for UHF mics.
-* For spans under 800 MHz WaveDesk switches the tinySA to *low input* mode.
+* For spans under 800 MHz Unique AV RF Scan Co-ord switches the tinySA to *low input* mode.
 
 ## Phone monitor (QR code)
 
@@ -109,9 +118,9 @@ Control actions need **Allow control** to be on. The key can also be sent as an 
 
 ## Updates and releases
 
-WaveDesk checks the [Releases](https://github.com/Jeansenekal-tech/rf-microphone-control-and-scan-/releases)
-of this repository (at most every 6 hours, or *WaveDesk › Check for Updates…*). It downloads
-`WaveDesk.zip`, replaces the app and restarts.
+Unique AV RF Scan Co-ord checks the [Releases](https://github.com/Jeansenekal-tech/rf-microphone-control-and-scan-/releases)
+of this repository (at most every 6 hours, or *Unique AV RF Scan Co-ord › Check for Updates…*). It downloads
+`Unique-AV-RF-Scan-Co-ord.zip`, replaces the app and restarts.
 
 To publish a new version, raise `CFBundleShortVersionString` in `Resources/Info.plist`
 (e.g. `0.1.0` → `0.2.0`) and push to `main`. GitHub Actions builds a universal
@@ -121,7 +130,7 @@ The app is signed ad-hoc (not notarized). If macOS refuses to open a copy downlo
 right-click › Open, or remove the quarantine flag:
 
 ```bash
-xattr -dr com.apple.quarantine /Applications/WaveDesk.app
+xattr -dr com.apple.quarantine "/Applications/Unique AV RF Scan Co-ord.app"
 ```
 
 Updates installed by the app itself aren't affected by this.
@@ -147,7 +156,13 @@ added in the same way as the Shure and Sennheiser ones.
 > Spectrum rules change. The region data is a planning aid: always confirm with your
 > regulator (ICASA, FCC, Ofcom…) and the licences you hold.
 
+## Logo
+
+Source artwork is in `Resources/Logo/` (`AppIcon.svg`, `Logo.svg`, `Logo-dark.svg`, plus PNGs). The macOS icon set in `Resources/AppIcon.iconset` is turned into `AppIcon.icns` by `build_app.sh`.
+
 ## Where data is stored
+
+(The internal code name is *WaveDesk*, which is why folders and the source code use that name.)
 
 `~/Library/Application Support/WaveDesk/`
 

@@ -19,7 +19,11 @@ final class Updater: ObservableObject {
         var prerelease: Bool
         var assets: [Asset]
         var version: String { tag_name.hasPrefix("v") ? String(tag_name.dropFirst()) : tag_name }
-        var zip: Asset? { assets.first { $0.name.hasSuffix(".zip") && $0.name.lowercased().contains("wavedesk") } }
+        /// Prefer the named app zip; "WaveDesk.zip" is the legacy asset kept for 0.1.0's updater.
+        var zip: Asset? {
+            assets.first { $0.name.hasSuffix(".zip") && $0.name != "WaveDesk.zip" }
+                ?? assets.first { $0.name.hasSuffix(".zip") }
+        }
     }
 
     @Published var autoCheck: Bool { didSet { UserDefaults.standard.set(autoCheck, forKey: "update.auto") } }
@@ -73,7 +77,7 @@ final class Updater: ObservableObject {
                 }
                 if !r.draft && !r.prerelease && Self.isNewer(r.version, than: Self.currentVersion) {
                     self.available = r
-                    self.status = "WaveDesk \(r.version) is available"
+                    self.status = "\(AppInfo.name) \(r.version) is available"
                     if userInitiated { self.offer(r) }
                 } else {
                     self.available = nil
@@ -86,7 +90,7 @@ final class Updater: ObservableObject {
 
     func offer(_ r: Release) {
         let a = NSAlert()
-        a.messageText = "WaveDesk \(r.version) is available"
+        a.messageText = "\(AppInfo.name) \(r.version) is available"
         a.informativeText = "You have \(Self.currentVersion).\n\n" + String((r.body ?? "").prefix(1200))
         a.addButton(withTitle: canInstall && r.zip != nil ? "Install and Relaunch" : "Open Download Page")
         a.addButton(withTitle: "Later")
@@ -127,7 +131,7 @@ final class Updater: ObservableObject {
                   let newApp = try fm.contentsOfDirectory(at: work, includingPropertiesForKeys: nil)
                     .first(where: { $0.pathExtension == "app" }),
                   Bundle(url: newApp)?.bundleIdentifier == Bundle.main.bundleIdentifier else {
-                fail("The downloaded update isn't a valid WaveDesk app", r); return
+                fail("The downloaded update isn't a valid \(AppInfo.name) app", r); return
             }
             // Downloads made by the app aren't quarantined, but clear the flag just in case.
             let x = Process()
@@ -136,15 +140,18 @@ final class Updater: ObservableObject {
             try? x.run(); x.waitUntilExit()
 
             let current = Bundle.main.bundleURL
+            // Install next to the current app under the new app's own name (handles renames).
+            let target = current.deletingLastPathComponent().appendingPathComponent(newApp.lastPathComponent)
             var trashed: NSURL?
             try fm.trashItem(at: current, resultingItemURL: &trashed)
             do {
-                try fm.moveItem(at: newApp, to: current)
+                if target != current, fm.fileExists(atPath: target.path) { try fm.trashItem(at: target, resultingItemURL: nil) }
+                try fm.moveItem(at: newApp, to: target)
             } catch {
                 if let t = trashed as URL? { try? fm.moveItem(at: t, to: current) }   // put the old app back
                 throw error
             }
-            relaunch(current)
+            relaunch(target)
         } catch {
             fail("Could not replace the app: \(error.localizedDescription)", r)
         }

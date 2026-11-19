@@ -83,7 +83,7 @@ struct DevicesView: View {
                         Text("""
                         • Put the Mac on the same wired network/subnet as the receivers (a dedicated switch is best).
                         • Give receivers fixed IPs, or note the DHCP addresses from their front panel.
-                        • The first time, macOS asks to allow WaveDesk to find devices on your local network – click Allow \
+                        • The first time, macOS asks to allow Unique AV RF Scan Co-ord to find devices on your local network – click Allow \
                         (System Settings › Privacy & Security › Local Network).
                         """)
                         .font(.caption)

@@ -1,6 +1,6 @@
 name: Release
 
-# Two ways to publish a new version (WaveDesk's built-in updater picks up the newest release):
+# Two ways to publish a new version (the app's built-in updater picks up the newest release):
 #   1. Bump CFBundleShortVersionString in Resources/Info.plist and push to main.
 #      A release v<version> is created if it doesn't exist yet.
 #   2. Push a tag:  git tag v0.2.0 && git push origin v0.2.0
@@ -57,7 +57,10 @@ jobs:
 
       - name: Zip
         if: steps.v.outputs.skip == 'false'
-        run: ditto -c -k --keepParent build/WaveDesk.app build/WaveDesk.zip
+        run: |
+          ditto -c -k --keepParent "build/Unique AV RF Scan Co-ord.app" "build/Unique-AV-RF-Scan-Co-ord.zip"
+          # Legacy name so version 0.1.0 (which looks for "WaveDesk" in the file name) can still update.
+          cp "build/Unique-AV-RF-Scan-Co-ord.zip" build/WaveDesk.zip
 
       - name: Publish release
         if: steps.v.outputs.skip == 'false'
@@ -65,5 +68,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           V="v${{ steps.v.outputs.version }}"
-          gh release create "$V" build/WaveDesk.zip --target "$GITHUB_SHA" \
-            --title "WaveDesk ${{ steps.v.outputs.version }}" --generate-notes
+          gh release create "$V" build/Unique-AV-RF-Scan-Co-ord.zip build/WaveDesk.zip --target "$GITHUB_SHA" \
+            --title "Unique AV RF Scan Co-ord ${{ steps.v.outputs.version }}" --generate-notes

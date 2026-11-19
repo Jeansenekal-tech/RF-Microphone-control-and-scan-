@@ -26,7 +26,7 @@ jobs:
       - name: Smoke test (launch app in demo mode, query web server, screenshots)
         run: |
           mkdir -p smoke
-          open build/WaveDesk.app --args --demo
+          open "build/Unique AV RF Scan Co-ord.app" --args --demo
           sleep 20
           KEY=$(defaults read app.wavedesk.WaveDesk remote.key)
           curl -s -o smoke/locked.html -w "locked page: %{http_code}\n" http://127.0.0.1:8088/

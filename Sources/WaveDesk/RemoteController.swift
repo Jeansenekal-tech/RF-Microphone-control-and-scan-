@@ -77,12 +77,15 @@ final class RemoteController: ObservableObject {
 
     private func route(_ r: HTTPRequest) -> HTTPResponse {
         requests &+= 1
+        if r.path == "/icon.png" || r.path == "/apple-touch-icon.png" || r.path == "/favicon.ico" {
+            return HTTPResponse(status: 200, contentType: "image/png", body: MonitorIcon.png)
+        }
         let given = r.query["key"] ?? r.headers["x-wavedesk-key"] ?? ""
         guard given == key else {
             if r.path == "/" || r.path.isEmpty {
                 return .html(MonitorPage.locked, status: 401)
             }
-            return .text("Missing or wrong key. Add ?key=… (shown in WaveDesk › Remote).", status: 401)
+            return .text("Missing or wrong key. Add ?key=… (shown on the Remote & Companion page of Unique AV RF Scan Co-ord).", status: 401)
         }
         guard let state else { return .text("Not ready", status: 503) }
         let parts = r.path.split(separator: "/").map(String.init)
@@ -110,7 +113,7 @@ final class RemoteController: ObservableObject {
     }
 
     private var forbidden: HTTPResponse {
-        .text("Remote control is switched off. Enable “Allow control” in WaveDesk › Remote.", status: 403)
+        .text("Remote control is switched off. Enable “Allow control” on the Remote & Companion page of Unique AV RF Scan Co-ord.", status: 403)
     }
 
     private func controlRoute(_ s: AppState, _ p: [String]) -> HTTPResponse {
@@ -205,7 +208,7 @@ final class RemoteController: ObservableObject {
 
     private func snapshot(_ s: AppState) -> RState {
         let a = s.analyzer
-        return RState(app: "WaveDesk", version: Updater.currentVersion, project: s.project.name, venue: s.project.venue,
+        return RState(app: AppInfo.name, version: Updater.currentVersion, project: s.project.name, venue: s.project.venue,
                       region: s.region.name, time: Date().timeIntervalSince1970, control: allowControl,
                       conflicts: s.conflicts.count,
                       analyzer: RAnalyzer(connected: a.connected, scanning: a.scanning, status: a.status, passes: a.passes),

@@ -74,7 +74,7 @@ final class AppState: ObservableObject {
         if CommandLine.arguments.contains("--demo") { startDemo() }
     }
 
-    /// `open WaveDesk.app --args --demo`: demo receiver + simulated analyzer, scanning.
+    /// `open "Unique AV RF Scan Co-ord.app" --args --demo`: demo receiver + simulated analyzer, scanning.
     func startDemo() {
         if !devices.contains(where: { $0.kind == .demo }) { addDevice(kind: .demo, host: "", nickname: "Demo rack") }
         analyzer.sourceKind = .simulated

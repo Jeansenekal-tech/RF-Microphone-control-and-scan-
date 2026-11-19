@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
     <key>CFBundleName</key>
-    <string>WaveDesk</string>
+    <string>Unique AV RF Scan Co-ord</string>
     <key>CFBundleDisplayName</key>
-    <string>WaveDesk</string>
+    <string>Unique AV RF Scan Co-ord</string>
     <key>CFBundleIdentifier</key>
     <string>app.wavedesk.WaveDesk</string>
     <key>CFBundleExecutable</key>
@@ -27,6 +27,6 @@
     <key>NSPrincipalClass</key>
     <string>NSApplication</string>
     <key>NSLocalNetworkUsageDescription</key>
-    <string>WaveDesk connects to your Shure and Sennheiser wireless receivers on the local network to monitor and control them.</string>
+    <string>Unique AV RF Scan Co-ord connects to your Shure and Sennheiser wireless receivers on the local network to monitor and control them.</string>
 </dict>
 </plist>

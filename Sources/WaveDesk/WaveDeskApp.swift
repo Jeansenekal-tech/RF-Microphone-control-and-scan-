@@ -1,6 +1,11 @@
 import SwiftUI
 import AppKit
 
+enum AppInfo {
+    /// The name shown to users. (Internally the project, bundle ID and data folder are still "WaveDesk".)
+    static let name = "Unique AV RF Scan Co-ord"
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Needed when launched as a bare executable (`swift run`) so a real window + Dock icon appear.
@@ -17,7 +22,7 @@ struct WaveDeskApp: App {
     @StateObject private var state = AppState()
 
     var body: some Scene {
-        WindowGroup("WaveDesk") {
+        WindowGroup(AppInfo.name) {
             RootView()
                 .environmentObject(state)
                 .frame(minWidth: 1100, minHeight: 720)
@@ -81,10 +86,16 @@ struct RootView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(Screen.allCases, selection: $screen) { s in
-                Label(s.rawValue, systemImage: s.icon)
-                    .badge(s == .health ? state.health.active.count : 0)
-                    .tag(s)
+            List(selection: $screen) {
+                Section {
+                    ForEach(Screen.allCases) { s in
+                        Label(s.rawValue, systemImage: s.icon)
+                            .badge(s == .health ? state.health.active.count : 0)
+                            .tag(s)
+                    }
+                } header: {
+                    BrandHeader().padding(.bottom, 6)
+                }
             }
             .navigationSplitViewColumnWidth(min: 170, ideal: 190, max: 240)
         } detail: {
@@ -132,7 +143,7 @@ struct UpdateToolbarButton: View {
             Button { updater.offer(r) } label: {
                 Label("Update to \(r.version)", systemImage: "arrow.down.circle.fill").foregroundColor(.accentColor)
             }
-            .help("WaveDesk \(r.version) is available")
+            .help("\(AppInfo.name) \(r.version) is available")
         }
     }
 }
@@ -163,5 +174,21 @@ struct DashboardView: View {
             .frame(minWidth: 640)
             InspectorPanel().frame(minWidth: 300, idealWidth: 340, maxWidth: 460)
         }
+    }
+}
+
+/// Logo + name at the top of the sidebar.
+struct BrandHeader: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(nsImage: NSApp.applicationIconImage)
+                .resizable()
+                .frame(width: 34, height: 34)
+            VStack(alignment: .leading, spacing: 0) {
+                Text("UNIQUE AV").font(.system(size: 13, weight: .heavy)).foregroundColor(.primary)
+                Text("RF SCAN CO-ORD").font(.system(size: 9, weight: .semibold)).tracking(1.5).foregroundStyle(.secondary)
+            }
+        }
+        .textCase(nil)
     }
 }
