@@ -15,13 +15,15 @@ struct NetworkView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
+                if net.localNetworkDenied { LocalNetworkDeniedBanner() }
                 SectionBox(title: "Receiver network") {
                     Text("Choose the connection your wireless receivers are plugged into. With Automatic, macOS picks the route by IP address – fine when the Mac is on one network. When it's on Wi-Fi and a show network at the same time, pick the show network here.")
                         .font(.caption).foregroundStyle(.secondary)
                     NetworkRow(title: "Automatic", subtitle: "Let macOS choose by IP address", symbol: "arrow.triangle.branch",
                                selected: net.receiverInterfaceID == nil) { net.receiverInterfaceID = nil }
                     ForEach(net.interfaces) { i in
-                        NetworkRow(title: i.displayName, subtitle: "\(i.ipv4) · subnet \(i.subnet) · \(i.bsdName)",
+                        NetworkRow(title: i.displayName,
+                                   subtitle: "\(i.ipv4) · \(i.isLinkLocal ? "self-assigned (no DHCP)" : "subnet \(i.subnet)") · \(i.bsdName)",
                                    symbol: i.symbol, selected: net.receiverInterfaceID == i.id) {
                             net.receiverInterfaceID = i.id
                         }
@@ -178,5 +180,27 @@ struct ReceiverNetworkRow: View {
             Spacer()
             Text(device.online ? "Connected" : device.status).font(.caption).foregroundStyle(.secondary).lineLimit(1)
         }
+    }
+}
+
+/// Shown when macOS has blocked this app from the local network – the most common reason receivers aren't found.
+struct LocalNetworkDeniedBanner: View {
+    var body: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: "hand.raised.fill").foregroundColor(.white).font(.title2)
+            VStack(alignment: .leading, spacing: 4) {
+                Text("macOS is blocking access to your local network").font(.headline).foregroundColor(.white)
+                Text("Receivers can't be reached until you allow it: System Settings › Privacy & Security › Local Network › turn on Unique AV RF Scan Co-ord, then quit and reopen the app.")
+                    .font(.callout).foregroundColor(.white.opacity(0.9))
+                Button("Open Local Network settings") {
+                    let urls = ["x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork",
+                                "x-apple.systempreferences:com.apple.preference.security?Privacy"]
+                    for s in urls { if let u = URL(string: s), NSWorkspace.shared.open(u) { break } }
+                }
+            }
+            Spacer()
+        }
+        .padding(12)
+        .background(RoundedRectangle(cornerRadius: 10).fill(Color.red))
     }
 }

@@ -370,22 +370,40 @@ final class AppState: ObservableObject {
 
     @Published var discoveryProgress = ""
 
-    /// Probes the receiver network (Network page) for Shure's control port (TCP 2202), in batches.
+    private var discoveryRun = 0
+
+    /// Probes the receiver network (Network page) for Shure's control port (TCP 2202):
+    /// devices the Mac already knows about first, then every address (a 169.254 network is ~65,000).
     func discoverShure() {
         guard !discovering else { return }
+        Self.raiseOpenFileLimit()
         let known = Set(devices.map(\.host))
-        let hosts = NetworkManager.shared.discoveryHosts().filter { !known.contains($0) }
-        guard !hosts.isEmpty else { coordMessage = "No IPv4 network found"; return }
+        let d = NetworkManager.shared.discoveryHosts()
+        let hosts = (d.known + d.sweep).filter { !known.contains($0) }
+        guard !hosts.isEmpty else { coordMessage = "No network connection found"; return }
         discovering = true
         discovered = []
-        probe(hosts, from: 0)
+        discoveryRun += 1
+        let big = hosts.count > 2000
+        probe(hosts, from: 0, batch: big ? 512 : 128, run: discoveryRun, firstBatch: d.known.count)
     }
 
-    private func probe(_ hosts: [String], from start: Int) {
-        let batch = 128
+    func stopDiscovery() {
+        discoveryRun += 1
+        discovering = false
+        discoveryProgress = ""
+    }
+
+    private func probe(_ hosts: [String], from start: Int, batch: Int, run: Int, firstBatch: Int) {
+        guard run == discoveryRun else { return }
         guard start < hosts.count else { discovering = false; discoveryProgress = ""; return }
-        let slice = hosts[start..<min(hosts.count, start + batch)]
-        discoveryProgress = "Checked \(start) of \(hosts.count) addresses…"
+        // The ARP-known devices go in one quick first batch.
+        let size = (start == 0 && firstBatch > 0) ? min(firstBatch, 512) : batch
+        let slice = hosts[start..<min(hosts.count, start + size)]
+        let left = Double(hosts.count - start) / Double(batch) * 1.3
+        discoveryProgress = start == 0 && firstBatch > 0
+            ? "Checking \(firstBatch) known device(s)…"
+            : "Checked \(start) of \(hosts.count)" + (left > 20 ? String(format: " – about %.0f min left", max(1, left / 60)) : "")
         var conns: [NWConnection] = []
         for host in slice {
             let tcp = NWProtocolTCP.Options()
@@ -393,19 +411,31 @@ final class AppState: ObservableObject {
             let params = NetworkManager.shared.parameters(NWParameters(tls: nil, tcp: tcp))
             let c = NWConnection(host: NWEndpoint.Host(host), port: 2202, using: params)
             c.stateUpdateHandler = { [weak self, weak c] st in
-                if case .ready = st {
+                switch st {
+                case .ready:
                     if let self, !self.discovered.contains(host) { self.discovered.append(host) }
                     c?.cancel()
+                case .waiting(let e), .failed(let e):
+                    _ = NetworkManager.shared.explain(e, path: c?.currentPath)   // flags a Local Network denial
+                default: break
                 }
             }
             c.start(queue: .main)
             conns.append(c)
         }
         let all = conns
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) { [weak self] in
             all.forEach { $0.cancel() }
-            self?.probe(hosts, from: start + batch)
+            self?.probe(hosts, from: start + size, batch: batch, run: run, firstBatch: firstBatch)
         }
+    }
+
+    /// Apps start with a low limit on open connections (often 256); the search needs more.
+    static func raiseOpenFileLimit() {
+        var r = rlimit()
+        guard getrlimit(RLIMIT_NOFILE, &r) == 0 else { return }
+        let want = min(rlim_t(4096), r.rlim_max)
+        if r.rlim_cur < want { r.rlim_cur = want; _ = setrlimit(RLIMIT_NOFILE, &r) }
     }
 
     /// Reconnects every receiver (after the receiver network changes).

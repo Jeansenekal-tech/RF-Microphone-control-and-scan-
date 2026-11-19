@@ -4,6 +4,7 @@ import UniqueAVCore
 
 struct DevicesView: View {
     @EnvironmentObject var state: AppState
+    @ObservedObject private var net = NetworkManager.shared
     @State private var kind: DeviceKind = .shure
     @State private var host = ""
     @State private var nickname = ""
@@ -26,6 +27,7 @@ struct DevicesView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 12) {
+                    if net.localNetworkDenied { LocalNetworkDeniedBanner() }
                     SectionBox(title: "Add receiver") {
                         Picker("Type", selection: $kind) {
                             ForEach(DeviceKind.allCases) { Text($0.title).tag($0) }
@@ -62,8 +64,11 @@ struct DevicesView: View {
 
                     SectionBox(title: "Find Shure receivers on this network") {
                         HStack {
-                            Button(state.discovering ? "Searching…" : "Search") { state.discoverShure() }
-                                .disabled(state.discovering)
+                            if state.discovering {
+                                Button("Stop") { state.stopDiscovery() }
+                            } else {
+                                Button("Search") { state.discoverShure() }
+                            }
                             if state.discovering {
                                 ProgressView().controlSize(.small)
                                 Text(state.discoveryProgress).font(.caption).foregroundStyle(.secondary)
@@ -77,6 +82,8 @@ struct DevicesView: View {
                             }
                         }
                         if !state.discovering && state.discovered.isEmpty {
+                            Text("Not finding your receivers? Check: 1) Local Network access is allowed for this app, 2) the Mac is plugged into the same switch, 3) the Network page shows the receivers' network. On a switch without a router, receivers and Mac use 169.254.x.x addresses – the search then checks all of them (about a minute). You can always add a receiver by the IP shown on its front panel.")
+                                .font(.caption).foregroundStyle(.secondary)
                             Text("Checks every address on the receiver network (see the Network page) for Shure's control port (TCP 2202). UHF-R and Sennheiser receivers need their IP entered manually (see the receiver's network menu).")
                                 .font(.caption).foregroundStyle(.secondary)
                         }

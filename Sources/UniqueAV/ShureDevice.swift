@@ -41,9 +41,9 @@ final class ShureDevice: Device {
                 self.startPolling()
             case .waiting(let e):
                 self.online = false
-                self.status = "Waiting: \(e.localizedDescription)"
+                self.status = "Waiting: " + NetworkManager.shared.explain(e, path: c.currentPath)
             case .failed(let e):
-                self.fail(e.localizedDescription)
+                self.fail(NetworkManager.shared.explain(e, path: c.currentPath))
             default:
                 break
             }

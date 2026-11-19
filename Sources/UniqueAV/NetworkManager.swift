@@ -15,6 +15,8 @@ struct NetInterface: Identifiable, Equatable {
     enum Kind { case wifi, ethernet, other }
 
     var subnet: String { IPv4.subnet(ipv4, prefix: prefix) ?? "\(ipv4)/\(prefix)" }
+    /// Self-assigned 169.254.x.x address: no DHCP server on this network (common on a plain show switch).
+    var isLinkLocal: Bool { IPv4.isLinkLocal(ipv4) }
     var symbol: String {
         switch kind { case .wifi: return "wifi"; case .ethernet: return "cable.connector"; case .other: return "network" }
     }
@@ -33,6 +35,9 @@ final class NetworkManager: ObservableObject {
     }
     /// Interface whose address is used for the phone-monitor QR code (nil = first available).
     @Published var phoneInterfaceID: String? { didSet { save() } }
+
+    /// Set when macOS refuses a connection because Local Network access is turned off for this app.
+    @Published var localNetworkDenied = false
 
     /// Called when the receiver network changes (AppState reconnects all receivers).
     var onReceiverNetworkChange: (() -> Void)?
@@ -73,7 +78,7 @@ final class NetworkManager: ObservableObject {
             let flags = Int32(ptr.pointee.ifa_flags)
             guard let sa = ptr.pointee.ifa_addr, sa.pointee.sa_family == UInt8(AF_INET),
                   flags & IFF_UP != 0, flags & IFF_RUNNING != 0, flags & IFF_LOOPBACK == 0 else { continue }
-            guard let ip = Self.numericHost(sa), !ip.hasPrefix("169.254.") else { continue }
+            guard let ip = Self.numericHost(sa) else { continue }
             let bsd = String(cString: ptr.pointee.ifa_name)
             let mask = ptr.pointee.ifa_netmask.flatMap(Self.numericHost)
             let prefix = mask.flatMap { IPv4.prefixLength(mask: $0) } ?? 24
@@ -128,11 +133,62 @@ final class NetworkManager: ObservableObject {
         return base
     }
 
-    /// Addresses to probe when searching for receivers.
-    func discoveryHosts() -> [String] {
+    /// Addresses to probe when searching for receivers: devices the Mac already knows about (ARP table)
+    /// first, then every address on the network. A self-assigned (169.254) network is swept completely.
+    func discoveryHosts() -> (known: [String], sweep: [String], linkLocal: Bool) {
         let list = receiverInterface.map { [$0] } ?? interfaces
+        let own = Set(interfaces.map(\.ipv4))
+        let arp = Self.arpTable()
+        var known: [String] = []
+        var sweep: [String] = []
+        var linkLocal = false
+        for i in list {
+            known += IPv4.parseARP(arp, interface: i.bsdName).filter { i.contains($0) && !own.contains($0) }
+            if i.isLinkLocal {
+                linkLocal = true
+                sweep += IPv4.linkLocalHosts(excluding: own)
+            } else {
+                sweep += IPv4.hosts(around: i.ipv4, prefix: i.prefix)
+            }
+        }
         var seen = Set<String>()
-        return list.flatMap { IPv4.hosts(around: $0.ipv4, prefix: $0.prefix) }.filter { seen.insert($0).inserted }
+        known = known.filter { seen.insert($0).inserted }
+        sweep = sweep.filter { seen.insert($0).inserted }
+        return (known, sweep, linkLocal)
+    }
+
+    /// Output of `arp -an` (the Mac's table of devices recently seen on the local network).
+    static func arpTable() -> String {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/sbin/arp")
+        p.arguments = ["-an"]
+        let pipe = Pipe()
+        p.standardOutput = pipe
+        p.standardError = Pipe()
+        do { try p.run() } catch { return "" }
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        p.waitUntilExit()
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    /// Explains a failed connection in plain words, and notices when macOS is blocking local network access.
+    func explain(_ error: NWError, path: NWPath?) -> String {
+        if path?.unsatisfiedReason == .localNetworkDenied {
+            localNetworkDenied = true
+            return "Blocked by macOS – allow Local Network access (System Settings › Privacy & Security › Local Network)"
+        }
+        if case .posix(let code) = error {
+            switch code {
+            case .EHOSTUNREACH, .ENETUNREACH:
+                return "No route to receiver – check the Mac is on the receivers' network, and Local Network access is allowed"
+            case .ECONNREFUSED:
+                return "Receiver refused the connection – is this a Shure receiver with network control (port 2202)?"
+            case .ETIMEDOUT:
+                return "No answer – check the receiver's IP address and cabling"
+            default: break
+            }
+        }
+        return error.localizedDescription
     }
 
     // MARK: Test
@@ -154,8 +210,8 @@ final class NetworkManager: ObservableObject {
         c.stateUpdateHandler = { st in
             switch st {
             case .ready: finish(true, "\(ip) answers on port \(port)")
-            case .failed(let e): finish(false, e.localizedDescription)
-            case .waiting(let e): finish(false, e.localizedDescription)
+            case .failed(let e): finish(false, self.explain(e, path: c.currentPath))
+            case .waiting(let e): finish(false, self.explain(e, path: c.currentPath))
             default: break
             }
         }

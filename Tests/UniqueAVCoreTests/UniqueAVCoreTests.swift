@@ -183,4 +183,22 @@ final class NetworkMathTests: XCTestCase {
         XCTAssertEqual(IPv4.hosts(around: "10.20.30.40", prefix: 8).count, 253)    // too big -> /24
         XCTAssertEqual(IPv4.hosts(around: "10.0.0.1", prefix: 32), [])
     }
+
+    func testLinkLocalAndARP() {
+        XCTAssertTrue(IPv4.isLinkLocal("169.254.10.20"))
+        XCTAssertFalse(IPv4.isLinkLocal("192.168.1.1"))
+        let all = IPv4.linkLocalHosts(excluding: ["169.254.1.5"])
+        XCTAssertEqual(all.count, 254 * 256 - 1)
+        XCTAssertEqual(all.first, "169.254.1.0")
+        XCTAssertFalse(all.contains("169.254.1.5"))
+        let arp = """
+        ? (169.254.12.34) at 0:e:dd:1:2:3 on en5 ifscope [ethernet]
+        ? (169.254.200.7) at 0:e:dd:4:5:6 on en5 ifscope [ethernet]
+        ? (192.168.1.1) at a4:2b:b0:0:0:1 on en0 ifscope [ethernet]
+        ? (192.168.1.77) at (incomplete) on en0 ifscope [ethernet]
+        ? (224.0.0.251) at 1:0:5e:0:0:fb on en0 ifscope permanent [ethernet]
+        """
+        XCTAssertEqual(IPv4.parseARP(arp), ["169.254.12.34", "169.254.200.7", "192.168.1.1"])
+        XCTAssertEqual(IPv4.parseARP(arp, interface: "en5"), ["169.254.12.34", "169.254.200.7"])
+    }
 }
