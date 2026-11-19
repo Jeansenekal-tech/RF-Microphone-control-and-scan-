@@ -64,7 +64,10 @@ struct DevicesView: View {
                         HStack {
                             Button(state.discovering ? "Searching…" : "Search") { state.discoverShure() }
                                 .disabled(state.discovering)
-                            if state.discovering { ProgressView().controlSize(.small) }
+                            if state.discovering {
+                                ProgressView().controlSize(.small)
+                                Text(state.discoveryProgress).font(.caption).foregroundStyle(.secondary)
+                            }
                         }
                         ForEach(state.discovered, id: \.self) { ip in
                             HStack {
@@ -74,7 +77,7 @@ struct DevicesView: View {
                             }
                         }
                         if !state.discovering && state.discovered.isEmpty {
-                            Text("Checks every address on your local subnet for Shure's control port (TCP 2202). UHF-R and Sennheiser receivers need their IP entered manually (see the receiver's network menu).")
+                            Text("Checks every address on the receiver network (see the Network page) for Shure's control port (TCP 2202). UHF-R and Sennheiser receivers need their IP entered manually (see the receiver's network menu).")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }

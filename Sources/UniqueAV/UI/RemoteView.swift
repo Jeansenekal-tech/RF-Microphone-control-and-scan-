@@ -6,11 +6,11 @@ struct RemoteView: View {
     @EnvironmentObject var state: AppState
     @ObservedObject var remote: RemoteController
     @ObservedObject var updater: Updater
-    @State private var urlIndex = 0
+    @ObservedObject private var net = NetworkManager.shared
 
     var body: some View {
-        let urls = remote.monitorURLs
-        let bases = remote.baseURLs
+        let phone = net.phoneInterface
+        let url = phone.map { remote.monitorURL(ip: $0.ipv4) }
         HSplitView {
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {
@@ -22,12 +22,9 @@ struct RemoteView: View {
                             Text(remote.status).font(.caption).foregroundStyle(.secondary)
                         }
                         if remote.enabled {
-                            if urls.isEmpty {
-                                Text("No network connection found.").foregroundColor(.orange)
-                            } else {
-                                let i = min(urlIndex, urls.count - 1)
+                            if let url, let phone {
                                 HStack(alignment: .top, spacing: 16) {
-                                    if let img = RemoteController.qrCode(urls[i]) {
+                                    if let img = RemoteController.qrCode(url) {
                                         Image(nsImage: img).interpolation(.none).resizable()
                                             .frame(width: 200, height: 200)
                                             .padding(8).background(Color.white, in: RoundedRectangle(cornerRadius: 8))
@@ -36,21 +33,20 @@ struct RemoteView: View {
                                         Text("Scan with the phone's camera").font(.headline)
                                         Text("The phone must be on the same network (Wi-Fi) as this Mac. The monitor shows every channel live: frequency, RF, audio, battery, alerts and the spectrum.")
                                             .font(.caption).foregroundStyle(.secondary)
-                                        if urls.count > 1 {
-                                            Picker("Network", selection: $urlIndex) {
-                                                ForEach(urls.indices, id: \.self) { Text(bases[$0]).tag($0) }
-                                            }
-                                        }
-                                        Text(urls[i]).font(.caption.monospaced()).textSelection(.enabled)
+                                        PhoneNetworkPicker(net: net)
+                                        Text("Using \(phone.displayName) (\(phone.ipv4))").font(.caption)
+                                        Text(url).font(.caption.monospaced()).textSelection(.enabled)
                                         HStack {
                                             Button("Copy link") {
                                                 NSPasteboard.general.clearContents()
-                                                NSPasteboard.general.setString(urls[i], forType: .string)
+                                                NSPasteboard.general.setString(url, forType: .string)
                                             }
-                                            Button("Open in browser") { if let u = URL(string: urls[i]) { NSWorkspace.shared.open(u) } }
+                                            Button("Open in browser") { if let u = URL(string: url) { NSWorkspace.shared.open(u) } }
                                         }
                                     }
                                 }
+                            } else {
+                                Text("No network connection found.").foregroundColor(.orange)
                             }
                         }
                     }
@@ -93,7 +89,7 @@ struct RemoteView: View {
             }
             .frame(minWidth: 460)
 
-            CompanionGuide(base: bases.first ?? "http://<mac-ip>:\(remote.port)", key: remote.key)
+            CompanionGuide(base: phone.map { remote.baseURL(ip: $0.ipv4) } ?? "http://<mac-ip>:\(remote.port)", key: remote.key)
                 .frame(minWidth: 380, idealWidth: 460)
         }
     }

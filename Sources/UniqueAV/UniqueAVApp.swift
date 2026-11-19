@@ -88,6 +88,7 @@ enum Screen: String, CaseIterable, Identifiable {
     case groups = "Time of use"
     case library = "Scan library"
     case devices = "Devices"
+    case network = "Network"
     case inventory = "Inventory"
     case remote = "Remote & Companion"
     case project = "Project"
@@ -101,6 +102,7 @@ enum Screen: String, CaseIterable, Identifiable {
         case .groups: return "calendar.day.timeline.left"
         case .library: return "books.vertical"
         case .devices: return "antenna.radiowaves.left.and.right"
+        case .network: return "network"
         case .inventory: return "shippingbox"
         case .remote: return "qrcode"
         case .project: return "folder"
@@ -135,6 +137,7 @@ struct RootView: View {
             case .groups: GroupsView()
             case .library: LibraryView(library: state.library)
             case .devices: DevicesView()
+            case .network: NetworkView()
             case .inventory: InventoryView(inventory: state.inventory)
             case .remote: RemoteView(remote: state.remote, updater: state.updater)
             case .project: ProjectView()

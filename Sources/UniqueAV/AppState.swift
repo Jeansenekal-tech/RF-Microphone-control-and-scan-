@@ -71,6 +71,7 @@ final class AppState: ObservableObject {
         RunLoop.main.add(t, forMode: .common)
         healthTimer = t
         remote = RemoteController(state: self)
+        NetworkManager.shared.onReceiverNetworkChange = { [weak self] in self?.reconnectAll() }
         if CommandLine.arguments.contains("--demo") { startDemo() }
     }
 
@@ -367,35 +368,49 @@ final class AppState: ObservableObject {
     @Published var discovering = false
     @Published var discovered: [String] = []
 
-    /// Probes every address in the local /24 subnet(s) for Shure's control port (TCP 2202).
+    @Published var discoveryProgress = ""
+
+    /// Probes the receiver network (Network page) for Shure's control port (TCP 2202), in batches.
     func discoverShure() {
         guard !discovering else { return }
-        let prefixes = LocalNetwork.ipv4Prefixes()
-        guard !prefixes.isEmpty else { coordMessage = "No IPv4 network found"; return }
+        let known = Set(devices.map(\.host))
+        let hosts = NetworkManager.shared.discoveryHosts().filter { !known.contains($0) }
+        guard !hosts.isEmpty else { coordMessage = "No IPv4 network found"; return }
         discovering = true
         discovered = []
+        probe(hosts, from: 0)
+    }
+
+    private func probe(_ hosts: [String], from start: Int) {
+        let batch = 128
+        guard start < hosts.count else { discovering = false; discoveryProgress = ""; return }
+        let slice = hosts[start..<min(hosts.count, start + batch)]
+        discoveryProgress = "Checked \(start) of \(hosts.count) addresses…"
         var conns: [NWConnection] = []
-        let known = Set(devices.map(\.host))
-        for prefix in prefixes {
-            for i in 1...254 {
-                let host = "\(prefix).\(i)"
-                if known.contains(host) { continue }
-                let c = NWConnection(host: NWEndpoint.Host(host), port: 2202, using: .tcp)
-                c.stateUpdateHandler = { [weak self, weak c] st in
-                    if case .ready = st {
-                        if let self, !self.discovered.contains(host) { self.discovered.append(host) }
-                        c?.cancel()
-                    }
+        for host in slice {
+            let tcp = NWProtocolTCP.Options()
+            tcp.connectionTimeout = 2
+            let params = NetworkManager.shared.parameters(NWParameters(tls: nil, tcp: tcp))
+            let c = NWConnection(host: NWEndpoint.Host(host), port: 2202, using: params)
+            c.stateUpdateHandler = { [weak self, weak c] st in
+                if case .ready = st {
+                    if let self, !self.discovered.contains(host) { self.discovered.append(host) }
+                    c?.cancel()
                 }
-                c.start(queue: .main)
-                conns.append(c)
             }
+            c.start(queue: .main)
+            conns.append(c)
         }
         let all = conns
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
             all.forEach { $0.cancel() }
-            self?.discovering = false
+            self?.probe(hosts, from: start + batch)
         }
+    }
+
+    /// Reconnects every receiver (after the receiver network changes).
+    func reconnectAll() {
+        for d in devices { d.stop(); d.start() }
     }
 
     // MARK: Projects
@@ -505,38 +520,4 @@ final class AppState: ObservableObject {
 
 enum GroupColors {
     static let count = 8
-}
-
-enum LocalNetwork {
-    /// IPv4 addresses of the Mac's active interfaces (Ethernet/Wi-Fi first), excluding loopback/link-local.
-    static func ipv4Addresses() -> [String] {
-        var out: [(name: String, ip: String)] = []
-        var ifaddr: UnsafeMutablePointer<ifaddrs>?
-        guard getifaddrs(&ifaddr) == 0, let first = ifaddr else { return [] }
-        defer { freeifaddrs(ifaddr) }
-        for ptr in sequence(first: first, next: { $0.pointee.ifa_next }) {
-            let flags = Int32(ptr.pointee.ifa_flags)
-            guard let sa = ptr.pointee.ifa_addr, sa.pointee.sa_family == UInt8(AF_INET),
-                  flags & IFF_UP != 0, flags & IFF_LOOPBACK == 0 else { continue }
-            var host = [CChar](repeating: 0, count: Int(NI_MAXHOST))
-            let len = socklen_t(host.count)
-            guard getnameinfo(sa, socklen_t(sa.pointee.sa_len), &host, len, nil, 0, NI_NUMERICHOST) == 0 else { continue }
-            let ip = String(cString: host)
-            if ip.hasPrefix("169.254.") { continue }
-            let name = String(cString: ptr.pointee.ifa_name)
-            if !out.contains(where: { $0.ip == ip }) { out.append((name: name, ip: ip)) }
-        }
-        return out.sorted { ($0.name.hasPrefix("en") ? 0 : 1, $0.name) < ($1.name.hasPrefix("en") ? 0 : 1, $1.name) }
-            .map { $0.ip }
-    }
-
-    /// "192.168.1" style prefixes of the Mac's active IPv4 interfaces.
-    static func ipv4Prefixes() -> [String] {
-        var out: [String] = []
-        for ip in ipv4Addresses() {
-            let prefix = ip.split(separator: ".").prefix(3).joined(separator: ".")
-            if !out.contains(prefix) { out.append(prefix) }
-        }
-        return out
-    }
 }

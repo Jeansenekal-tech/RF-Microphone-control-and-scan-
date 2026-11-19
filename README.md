@@ -37,6 +37,7 @@ coordinate intermod-free frequencies, and keep an eye on everything during the s
 | **Bitfocus Companion** | HTTP API for Stream Deck buttons through Companion's *Generic HTTP Requests* module: mute/unmute, gain, start/stop scan, find and apply frequencies, plus plain-text values (battery, RF, mute, alerts) for feedback. |
 | **Auto update** | Checks this repo's GitHub Releases, downloads the new version, replaces the app and restarts it (*Unique AV RF Scan Co-ord › Check for Updates…*). |
 | **Licensing** | 60-day trial, then one Mac per licence (Keygen). Works 30 days offline. Move to a new Mac yourself, even if the old one is lost or broken. See [LICENSING.md](LICENSING.md). |
+| **Network** | Choose which connection (Ethernet, Wi-Fi, USB LAN…) talks to the receivers and which one the phone monitor uses. Shows whether each receiver's IP is on a connected network, with a connection test. |
 | **Regions** | **South Africa** (8 MHz UHF Ch21–69, IMT700/IMT800 mobile bands blocked, 470–694 MHz default), United States (6 MHz, Ch37 + 600 MHz mobile blocked), Europe/CEPT. |
 
 ## Install (on your Mac)

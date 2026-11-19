@@ -56,11 +56,8 @@ final class RemoteController: ObservableObject {
     }
 
     /// Monitor URLs for every network interface (one per IP).
-    var monitorURLs: [String] {
-        LocalNetwork.ipv4Addresses().map { "http://\($0):\(port)/?key=\(key)" }
-    }
-
-    var baseURLs: [String] { LocalNetwork.ipv4Addresses().map { "http://\($0):\(port)" } }
+    func baseURL(ip: String) -> String { "http://\(ip):\(port)" }
+    func monitorURL(ip: String) -> String { "\(baseURL(ip: ip))/?key=\(key)" }
 
     static func qrCode(_ text: String) -> NSImage? {
         let f = CIFilter.qrCodeGenerator()

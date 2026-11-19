@@ -27,7 +27,7 @@ final class ShureDevice: Device {
         let tcp = NWProtocolTCP.Options()
         tcp.connectionTimeout = 5
         tcp.enableKeepalive = true
-        let c = NWConnection(host: NWEndpoint.Host(host), port: port, using: NWParameters(tls: nil, tcp: tcp))
+        let c = NWConnection(host: NWEndpoint.Host(host), port: port, using: NetworkManager.shared.parameters(NWParameters(tls: nil, tcp: tcp)))
         conn = c
         c.stateUpdateHandler = { [weak self] st in
             guard let self, self.conn === c else { return }

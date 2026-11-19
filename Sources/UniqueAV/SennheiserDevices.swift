@@ -30,7 +30,8 @@ class UDPDevice: Device {
     private func open() {
         guard let port = NWEndpoint.Port(rawValue: udpPort) else { return }
         status = "Contacting \(host)…"
-        let c = NWConnection(host: NWEndpoint.Host(host), port: port, using: .udp)
+        let c = NWConnection(host: NWEndpoint.Host(host), port: port,
+                             using: NetworkManager.shared.parameters(NWParameters(dtls: nil, udp: NWProtocolUDP.Options())))
         conn = c
         c.stateUpdateHandler = { [weak self] st in
             guard let self, self.conn === c else { return }

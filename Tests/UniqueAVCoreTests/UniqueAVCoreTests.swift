@@ -153,3 +153,34 @@ final class ScheduleAndRegionTests: XCTestCase {
         XCTAssertEqual(RegionProfile.unitedStates.tvChannel(containingMHz: 607)?.number, 36)
     }
 }
+
+final class NetworkMathTests: XCTestCase {
+    func testParseAndFormat() {
+        XCTAssertEqual(IPv4.parse("192.168.1.20"), 0xC0A8_0114)
+        XCTAssertNil(IPv4.parse("192.168.1"))
+        XCTAssertNil(IPv4.parse("192.168.1.256"))
+        XCTAssertNil(IPv4.parse("a.b.c.d"))
+        XCTAssertEqual(IPv4.format(0x0A00_0001), "10.0.0.1")
+    }
+
+    func testMasksAndSubnets() {
+        XCTAssertEqual(IPv4.prefixLength(mask: "255.255.255.0"), 24)
+        XCTAssertEqual(IPv4.prefixLength(mask: "255.255.252.0"), 22)
+        XCTAssertNil(IPv4.prefixLength(mask: "255.0.255.0"))
+        XCTAssertTrue(IPv4.sameSubnet("192.168.1.20", "192.168.1.200", prefix: 24))
+        XCTAssertFalse(IPv4.sameSubnet("192.168.1.20", "192.168.2.20", prefix: 24))
+        XCTAssertTrue(IPv4.sameSubnet("10.0.1.5", "10.0.2.9", prefix: 22))
+        XCTAssertEqual(IPv4.subnet("10.0.1.5", prefix: 22), "10.0.0.0/22")
+    }
+
+    func testDiscoveryHosts() {
+        let h24 = IPv4.hosts(around: "192.168.1.20", prefix: 24)
+        XCTAssertEqual(h24.count, 253)                       // 254 hosts minus ourselves
+        XCTAssertFalse(h24.contains("192.168.1.20"))
+        XCTAssertEqual(h24.first, "192.168.1.1")
+        XCTAssertEqual(h24.last, "192.168.1.254")
+        XCTAssertEqual(IPv4.hosts(around: "10.0.1.5", prefix: 22).count, 1021)   // whole /22
+        XCTAssertEqual(IPv4.hosts(around: "10.20.30.40", prefix: 8).count, 253)    // too big -> /24
+        XCTAssertEqual(IPv4.hosts(around: "10.0.0.1", prefix: 32), [])
+    }
+}
