@@ -90,7 +90,7 @@ final class SennheiserG4Device: UDPDevice {
 
     override func handle(_ data: Data) {
         let text = String(decoding: data, as: UTF8.self)
-        for line in text.split(whereSeparator: { $0 == "\r" || $0 == "\n" }) {
+        for line in text.split(whereSeparator: { $0.isNewline }) {
             let parts = line.split(separator: " ").map(String.init)
             guard let key = parts.first?.lowercased() else { continue }
             let args = Array(parts.dropFirst())

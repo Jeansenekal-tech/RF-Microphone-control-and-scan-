@@ -48,6 +48,8 @@ final class AppState: ObservableObject {
     let inventory = InventoryStore()
     let telemetry = TelemetryStore()
     let health = HealthMonitor()
+    let updater = Updater()
+    private(set) var remote: RemoteController!
 
     private var sinks: [AnyCancellable] = []
     private var healthTimer: Timer?
@@ -67,6 +69,17 @@ final class AppState: ObservableObject {
         let t = Timer(timeInterval: 1, repeats: true) { [weak self] _ in self?.healthTick() }
         RunLoop.main.add(t, forMode: .common)
         healthTimer = t
+        remote = RemoteController(state: self)
+        updater.checkOnLaunch()
+        if CommandLine.arguments.contains("--demo") { startDemo() }
+    }
+
+    /// `open WaveDesk.app --args --demo`: demo receiver + simulated analyzer, scanning.
+    func startDemo() {
+        if !devices.contains(where: { $0.kind == .demo }) { addDevice(kind: .demo, host: "", nickname: "Demo rack") }
+        analyzer.sourceKind = .simulated
+        analyzer.connect()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in self?.analyzer.startScan() }
     }
 
     // MARK: Keys and lookups
@@ -475,9 +488,9 @@ enum GroupColors {
 }
 
 enum LocalNetwork {
-    /// "192.168.1" style prefixes of the Mac's active IPv4 interfaces.
-    static func ipv4Prefixes() -> [String] {
-        var out: [String] = []
+    /// IPv4 addresses of the Mac's active interfaces (Ethernet/Wi-Fi first), excluding loopback/link-local.
+    static func ipv4Addresses() -> [String] {
+        var out: [(name: String, ip: String)] = []
         var ifaddr: UnsafeMutablePointer<ifaddrs>?
         guard getifaddrs(&ifaddr) == 0, let first = ifaddr else { return [] }
         defer { freeifaddrs(ifaddr) }
@@ -490,6 +503,17 @@ enum LocalNetwork {
             guard getnameinfo(sa, socklen_t(sa.pointee.sa_len), &host, len, nil, 0, NI_NUMERICHOST) == 0 else { continue }
             let ip = String(cString: host)
             if ip.hasPrefix("169.254.") { continue }
+            let name = String(cString: ptr.pointee.ifa_name)
+            if !out.contains(where: { $0.ip == ip }) { out.append((name: name, ip: ip)) }
+        }
+        return out.sorted { ($0.name.hasPrefix("en") ? 0 : 1, $0.name) < ($1.name.hasPrefix("en") ? 0 : 1, $1.name) }
+            .map { $0.ip }
+    }
+
+    /// "192.168.1" style prefixes of the Mac's active IPv4 interfaces.
+    static func ipv4Prefixes() -> [String] {
+        var out: [String] = []
+        for ip in ipv4Addresses() {
             let prefix = ip.split(separator: ".").prefix(3).joined(separator: ".")
             if !out.contains(prefix) { out.append(prefix) }
         }

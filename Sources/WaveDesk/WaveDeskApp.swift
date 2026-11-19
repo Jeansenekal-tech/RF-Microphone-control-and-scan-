@@ -27,6 +27,9 @@ struct WaveDeskApp: App {
         }
         .commands {
             CommandGroup(replacing: .newItem) {}
+            CommandGroup(after: .appInfo) {
+                Button("Check for Updates…") { state.updater.check(userInitiated: true) }
+            }
             CommandMenu("Scan") {
                 Button(state.analyzer.scanning ? "Stop scan" : "Start scan") {
                     if state.analyzer.scanning { state.analyzer.stopScan() } else { state.analyzer.startScan() }
@@ -53,6 +56,7 @@ enum Screen: String, CaseIterable, Identifiable {
     case library = "Scan library"
     case devices = "Devices"
     case inventory = "Inventory"
+    case remote = "Remote & Companion"
     case project = "Project"
 
     var id: String { rawValue }
@@ -65,6 +69,7 @@ enum Screen: String, CaseIterable, Identifiable {
         case .library: return "books.vertical"
         case .devices: return "antenna.radiowaves.left.and.right"
         case .inventory: return "shippingbox"
+        case .remote: return "qrcode"
         case .project: return "folder"
         }
     }
@@ -91,6 +96,7 @@ struct RootView: View {
             case .library: LibraryView(library: state.library)
             case .devices: DevicesView()
             case .inventory: InventoryView(inventory: state.inventory)
+            case .remote: RemoteView(remote: state.remote, updater: state.updater)
             case .project: ProjectView()
             }
         }
@@ -105,6 +111,7 @@ struct RootView: View {
                 } label: {
                     Label("Project", systemImage: "folder")
                 }
+                UpdateToolbarButton(updater: state.updater)
                 AnalyzerToolbarButton(analyzer: state.analyzer)
                 Button { screen = .health } label: {
                     let n = state.health.active.count
@@ -114,6 +121,18 @@ struct RootView: View {
                 }
                 .help("Health check")
             }
+        }
+    }
+}
+
+struct UpdateToolbarButton: View {
+    @ObservedObject var updater: Updater
+    var body: some View {
+        if let r = updater.available {
+            Button { updater.offer(r) } label: {
+                Label("Update to \(r.version)", systemImage: "arrow.down.circle.fill").foregroundColor(.accentColor)
+            }
+            .help("WaveDesk \(r.version) is available")
         }
     }
 }

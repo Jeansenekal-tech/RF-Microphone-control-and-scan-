@@ -40,7 +40,7 @@ public enum TinySAProtocol {
     public static func stripResponse(_ text: String, command: String) -> String {
         var t = text
         if t.hasSuffix(prompt) { t.removeLast(prompt.count) }
-        if let nl = t.firstIndex(of: "\n") {
+        if let nl = t.firstIndex(where: { $0.isNewline }) {
             let first = t[..<nl].trimmingCharacters(in: .whitespacesAndNewlines)
             if first == command.trimmingCharacters(in: .whitespacesAndNewlines) {
                 t = String(t[t.index(after: nl)...])
@@ -51,7 +51,7 @@ public enum TinySAProtocol {
 
     public static func parseScan(_ text: String) -> [(hz: Double, dBm: Double)] {
         var out: [(hz: Double, dBm: Double)] = []
-        for line in text.split(whereSeparator: { $0 == "\n" || $0 == "\r" }) {
+        for line in text.split(whereSeparator: { $0.isNewline }) {
             let p = line.split(separator: " ", omittingEmptySubsequences: true)
             guard p.count >= 2, let f = Double(p[0]), let l = Double(p[1]) else { continue }
             out.append((f, l))
@@ -73,7 +73,7 @@ public enum ScanCSV {
     /// Accepts comma, semicolon or tab separated; frequency in MHz, kHz or Hz. Returns (kHz, dBm).
     public static func parse(_ text: String) -> [(kHz: Double, dBm: Double)] {
         var out: [(kHz: Double, dBm: Double)] = []
-        for line in text.split(whereSeparator: { $0 == "\n" || $0 == "\r" }) {
+        for line in text.split(whereSeparator: { $0.isNewline }) {
             let parts = line.split(whereSeparator: { $0 == "," || $0 == ";" || $0 == "\t" })
                 .map { $0.trimmingCharacters(in: .whitespaces) }
             guard parts.count >= 2, let f = Double(parts[0]), let l = Double(parts[1]) else { continue }

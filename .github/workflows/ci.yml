@@ -23,3 +23,22 @@ jobs:
         run: swift test 2>&1 | tee test.log
       - name: Build app bundle
         run: ./build_app.sh
+      - name: Smoke test (launch app in demo mode, query web server, screenshots)
+        run: |
+          mkdir -p smoke
+          open build/WaveDesk.app --args --demo
+          sleep 20
+          KEY=$(defaults read app.wavedesk.WaveDesk remote.key)
+          curl -s -o smoke/locked.html -w "locked page: %{http_code}\n" http://127.0.0.1:8088/
+          curl -sf "http://127.0.0.1:8088/api/state?key=$KEY" -o smoke/state.json
+          curl -sf "http://127.0.0.1:8088/api/spectrum?key=$KEY" -o smoke/spectrum.json
+          curl -sf "http://127.0.0.1:8088/api/ch/1/name?key=$KEY"; echo
+          curl -sf "http://127.0.0.1:8088/?key=$KEY" -o smoke/monitor.html
+          head -c 1500 smoke/state.json; echo
+          screencapture -x smoke/app.png
+      - name: Upload smoke results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke
+          path: smoke/
