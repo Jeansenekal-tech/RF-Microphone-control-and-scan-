@@ -149,8 +149,9 @@ enum MonitorPage {
       const L = 30, T = 14, W = w - L - 4, H = h - T - 16, lo = sp.startKHz, hi = sp.stopKHz;
       const x = k => L + (k - lo) / (hi - lo) * W, y = d => T + (-20 - Math.max(-120, Math.min(-20, d))) / 100 * H;
       g.font = '9px -apple-system,sans-serif'; g.fillStyle = '#6b7380';
+      const chW = sp.tv.length ? x(sp.tv[0].hi) - x(sp.tv[0].lo) : 99, every = Math.max(1, Math.ceil(16 / Math.max(1, chW)));
       sp.tv.forEach((t, i) => { if (+t.label % 2 === 0) { g.fillStyle = 'rgba(255,255,255,.035)'; g.fillRect(x(t.lo), T, x(t.hi) - x(t.lo), H); }
-        g.fillStyle = '#6b7380'; g.textAlign = 'center'; g.fillText(t.label, (x(t.lo) + x(t.hi)) / 2, 10); });
+        if (+t.label % every === 0) { g.fillStyle = '#6b7380'; g.textAlign = 'center'; g.fillText(t.label, (x(t.lo) + x(t.hi)) / 2, 10); } });
       sp.restricted.forEach(b => { if (b.hi > lo && b.lo < hi) { g.fillStyle = 'rgba(255,69,58,.13)';
         const a = Math.max(L, x(b.lo)), z = Math.min(L + W, x(b.hi)); g.fillRect(a, T, z - a, H); } });
       g.textAlign = 'right'; g.strokeStyle = 'rgba(255,255,255,.07)';
@@ -164,9 +165,13 @@ enum MonitorPage {
           on ? g.lineTo(px, py) : g.moveTo(px, py); on = true; }); g.stroke(); };
       trace(sp.peak, 'rgba(255,159,10,.9)', 1); trace(sp.live, '#34c759', 1.2);
       g.lineWidth = 1;
-      sp.markers.forEach((m, i) => { if (m.kHz < lo || m.kHz > hi) return; const px = x(m.kHz);
+      const rowEnd = [0, 0, 0, 0];   // right edge of the last label in each row, so labels never overlap
+      sp.markers.forEach(m => { if (m.kHz < lo || m.kHz > hi) return; const px = x(m.kHz);
         g.strokeStyle = m.conflict ? '#ff453a' : 'rgba(64,200,224,.8)'; g.beginPath(); g.moveTo(px, T); g.lineTo(px, T + H); g.stroke();
-        g.fillStyle = m.conflict ? '#ff453a' : '#40c8e0'; g.textAlign = 'left'; g.fillText(m.label, px + 2, T + 9 + (i % 3) * 10); });
+        const tw = g.measureText(m.label).width, row = rowEnd.findIndex(e => px + 2 > e + 3);
+        if (row < 0) return;
+        rowEnd[row] = px + 2 + tw;
+        g.fillStyle = m.conflict ? '#ff453a' : '#40c8e0'; g.textAlign = 'left'; g.fillText(m.label, px + 2, T + 9 + row * 10); });
     }
 
     async function tick(){

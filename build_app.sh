@@ -17,7 +17,7 @@ swift build -c release "${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"}"
 BIN="$(swift build -c release "${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"}" --show-bin-path)/WaveDesk"
 
 APP="build/WaveDesk.app"
-echo "▸ Assembling $APP…"
+echo "▸ Assembling ${APP}…"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/WaveDesk"

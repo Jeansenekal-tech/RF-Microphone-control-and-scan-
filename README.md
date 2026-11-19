@@ -22,6 +22,9 @@ coordinate intermod-free frequencies, and keep an eye on everything during the s
 | **Projects** | One project per show/venue: receivers, groups, plans, thresholds, region and overlays. Duplicate, export/import `.wdproj`. |
 | **Venue scan library** | Every saved or imported scan is kept, tagged by venue, to reuse next time you work there. |
 | **Inventory** | Equipment list (make, model, serial, tag, band), check-out/check-in with a log, totals per model, CSV export. |
+| **Phone / tablet monitor** | Built-in web page with every channel live (frequency, RF, audio, battery, alerts) and the spectrum. Open it by scanning the QR code on the *Remote & Companion* page. Optional mute/scan control. |
+| **Bitfocus Companion** | HTTP API for Stream Deck buttons through Companion's *Generic HTTP Requests* module: mute/unmute, gain, start/stop scan, find and apply frequencies, plus plain-text values (battery, RF, mute, alerts) for feedback. |
+| **Auto update** | Checks this repo's GitHub Releases, downloads the new version, replaces the app and restarts it (*WaveDesk › Check for Updates…*). |
 | **Regions** | **South Africa** (8 MHz UHF Ch21–69, IMT700/IMT800 mobile bands blocked, 470–694 MHz default), United States (6 MHz, Ch37 + 600 MHz mobile blocked), Europe/CEPT. |
 
 ## Build and run (on your Mac)
@@ -51,6 +54,12 @@ To work on the code, open `Package.swift` in Xcode and press Run. Run the unit t
 swift test
 ```
 
+To try everything without hardware (a demo receiver plus the simulated analyzer, already scanning):
+
+```bash
+open build/WaveDesk.app --args --demo
+```
+
 ## Quick start
 
 1. **Project** page: name the show, set the **venue** and **region** (default *South Africa*).
@@ -69,6 +78,58 @@ swift test
 * WaveDesk splits wide spans into 450-point sweeps (the Ultra's maximum) on an exact grid.
 * 25 kHz step and RBW *Auto* or 30–100 kHz work well for UHF mics.
 * For spans under 800 MHz WaveDesk switches the tinySA to *low input* mode.
+
+## Phone monitor (QR code)
+
+1. Open **Remote & Companion** in the sidebar. The web server runs on port 8088 by default.
+2. Scan the QR code with the phone's camera. The phone has to be on the same network as the Mac.
+3. Tip: on iPhone use *Share › Add to Home Screen* to get it full-screen like an app.
+
+The link contains an access key. *New key* invalidates every old QR code and Companion button.
+The monitor is read-only unless you switch on **Allow control**.
+
+## Bitfocus Companion (Stream Deck)
+
+Add a **Generic: HTTP Requests** connection in Companion and use **GET** actions. The
+*Remote & Companion* page lists the exact URLs (with your IP and key) and the channel numbers.
+
+| Action / value | URL (add `?key=YOUR_KEY`) |
+|---|---|
+| Toggle / set mute | `/api/ch/1/mute/toggle`, `/api/ch/1/mute/on`, `/api/ch/1/mute/off` |
+| Gain up / down | `/api/ch/1/gain/up`, `/api/ch/1/gain/down` |
+| Scan start / stop / toggle | `/api/scan/start`, `/api/scan/stop`, `/api/scan/toggle` |
+| Find / apply frequencies | `/api/coordinate`, `/api/apply` |
+| Channel values (plain text) | `/api/ch/1/name`, `freq`, `rf`, `rfa`, `rfb`, `audio`, `battery`, `batterymin`, `gain`, `mute`, `online`, `alerts`, `group` |
+| Alert count | `/api/alerts/count` |
+| Everything (JSON) | `/api/state`, `/api/spectrum`, `/api/channels` |
+
+Control actions need **Allow control** to be on. The key can also be sent as an `X-WaveDesk-Key` header.
+
+## Updates and releases
+
+WaveDesk checks the [Releases](https://github.com/Jeansenekal-tech/rf-microphone-control-and-scan-/releases)
+of this repository (at most every 6 hours, or *WaveDesk › Check for Updates…*). It downloads
+`WaveDesk.zip`, replaces the app and restarts.
+
+To publish a new version, push a tag. GitHub Actions builds a universal (Apple Silicon + Intel)
+app and attaches it to a release:
+
+```bash
+git tag v0.2.0
+```
+
+```bash
+git push origin v0.2.0
+```
+
+The app is signed ad-hoc (not notarized). If macOS refuses to open a copy downloaded with a browser,
+right-click › Open, or remove the quarantine flag:
+
+```bash
+xattr -dr com.apple.quarantine /Applications/WaveDesk.app
+```
+
+Updates installed by the app itself aren't affected by this.
 
 ## Hardware status
 
@@ -102,6 +163,7 @@ Sources/WaveDesk/       the macOS app
   ShureDevice, UHFRDevice, SennheiserDevices, EWDXDevice, DemoDevice   receiver drivers
   SerialPort, SpectrumSources, AnalyzerController          tinySA + scanning + waterfall
   AppState, Health, Telemetry, ScanLibrary, Inventory      app logic and storage
+  HTTPServer, RemoteController, MonitorPage, Updater       web monitor, Companion API, updates
   UI/                                                       SwiftUI screens
 Tests/WaveDeskCoreTests/
 ```
