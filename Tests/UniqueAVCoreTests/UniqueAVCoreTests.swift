@@ -202,3 +202,32 @@ final class NetworkMathTests: XCTestCase {
         XCTAssertEqual(IPv4.parseARP(arp, interface: "en5"), ["169.254.12.34", "169.254.200.7"])
     }
 }
+
+final class SLPTests: XCTestCase {
+    func testServiceRequestLayout() {
+        let d = [UInt8](SLP.serviceRequest(xid: 0x1234, serviceType: "service:service-agent", scope: "default"))
+        XCTAssertEqual(d[0], 2)                                   // SLPv2
+        XCTAssertEqual(d[1], 1)                                   // SrvRqst
+        XCTAssertEqual(Int(d[2]) << 16 | Int(d[3]) << 8 | Int(d[4]), d.count)   // length field
+        XCTAssertEqual(d[5], 0x20)                                // request-multicast flag
+        XCTAssertEqual(Array(d[10...11]), [0x12, 0x34])           // XID
+        XCTAssertEqual(Array(d[12...13]), [0, 2])                 // language tag length
+        XCTAssertEqual(String(decoding: d[14...15], as: UTF8.self), "en")
+        XCTAssertEqual(Array(d[16...17]), [0, 0])                 // empty previous-responder list
+        XCTAssertEqual(Int(d[18]) << 8 | Int(d[19]), 21)          // "service:service-agent"
+        XCTAssertEqual(d.count, 16 + 2 + 2 + 21 + 2 + 7 + 2 + 2)
+    }
+
+    func testServiceTypeRequestAndParsing() {
+        let d = [UInt8](SLP.serviceTypeRequest(xid: 7))
+        XCTAssertEqual(d[1], 9)
+        XCTAssertEqual(Array(d[18...19]), [0xFF, 0xFF])           // all naming authorities
+        XCTAssertEqual(SLP.function(of: Data([2, 11, 0])), 11)
+        XCTAssertNil(SLP.function(of: Data([1, 2])))
+        let reply = Data([2, 2, 0, 0, 40]) + Data("\u{0}\u{1}service:shure.ulxd4q://169.254.20.5,x\u{0}".utf8)
+        XCTAssertEqual(SLP.serviceStrings(in: reply), ["service:shure.ulxd4q://169.254.20.5"])
+        XCTAssertEqual(IPv4.broadcast("192.168.1.20", prefix: 24), "192.168.1.255")
+        XCTAssertEqual(IPv4.broadcast("169.254.3.4", prefix: 16), "169.254.255.255")
+    }
+}
+

@@ -62,29 +62,32 @@ struct DevicesView: View {
                         Text(help(kind)).font(.caption).foregroundStyle(.secondary)
                     }
 
-                    SectionBox(title: "Find Shure receivers on this network") {
+                    SectionBox(title: "Find Shure receivers") {
                         HStack {
                             if state.discovering {
                                 Button("Stop") { state.stopDiscovery() }
+                                ProgressView().controlSize(.small)
                             } else {
                                 Button("Search") { state.discoverShure() }
+                                    .keyboardShortcut("f", modifiers: [.command])
+                                if net.interfaces.contains(where: \.isLinkLocal) {
+                                    Button("Deep scan") { state.discoverShure(deep: true) }
+                                        .help("Also tries every 169.254.x.x address (about 65,000 – takes a few minutes)")
+                                }
                             }
-                            if state.discovering {
-                                ProgressView().controlSize(.small)
-                                Text(state.discoveryProgress).font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
-                        ForEach(state.discovered, id: \.self) { ip in
-                            HStack {
-                                Text(ip).font(.body.monospacedDigit())
-                                Spacer()
-                                Button("Add") { state.addDevice(kind: .shure, host: ip, nickname: "") }
+                            Spacer()
+                            if state.discovered.contains(where: { $0.reachable == true }) && !state.discovering {
+                                Button("Add all") { state.addAllFound() }
                             }
                         }
+                        if !state.discoveryProgress.isEmpty {
+                            Text(state.discoveryProgress).font(.caption).foregroundStyle(.secondary)
+                        }
+                        ForEach(state.discovered) { f in FoundDeviceRow(found: f) }
                         if !state.discovering && state.discovered.isEmpty {
-                            Text("Not finding your receivers? Check: 1) Local Network access is allowed for this app, 2) the Mac is plugged into the same switch, 3) the Network page shows the receivers' network. On a switch without a router, receivers and Mac use 169.254.x.x addresses – the search then checks all of them (about a minute). You can always add a receiver by the IP shown on its front panel.")
+                            Text("Search uses Shure Discovery (the same multicast discovery as Wireless Workbench), a UHF-R broadcast and a scan of every address on the receiver network. Compare the result with WWB's inventory – racks on a different IP range show up with what to change.")
                                 .font(.caption).foregroundStyle(.secondary)
-                            Text("Checks every address on the receiver network (see the Network page) for Shure's control port (TCP 2202). UHF-R and Sennheiser receivers need their IP entered manually (see the receiver's network menu).")
+                            Text("Still missing? Check Local Network access for this app, that the Mac is on the receivers' switch, and the Network page. You can always add a receiver by the IP on its front panel.")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
@@ -228,5 +231,40 @@ struct TuningEditor: View {
             high = device.tuneHighMHz.map { String($0) } ?? ""
             step = device.tuneStepKHz.map { String($0) } ?? ""
         }
+    }
+}
+
+struct FoundDeviceRow: View {
+    @EnvironmentObject var state: AppState
+    let found: FoundDevice
+
+    var body: some View {
+        let added = state.devices.contains { $0.host == found.ip }
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: found.reachable == true ? "checkmark.circle.fill"
+                  : found.reachable == false ? "exclamationmark.triangle.fill" : "circle.dotted")
+                .foregroundColor(found.reachable == true ? .green : found.reachable == false ? .orange : .secondary)
+                .padding(.top, 2)
+            VStack(alignment: .leading, spacing: 2) {
+                HStack(spacing: 6) {
+                    Text(found.ip).font(.body.monospacedDigit())
+                    if !found.model.isEmpty { Text(found.model).font(.callout.bold()) }
+                    if !found.name.isEmpty { Text("“\(found.name)”").font(.callout) }
+                    if found.kind == .shureUHFR { Text("UHF-R").font(.caption.bold()) }
+                }
+                Text(found.sources.sorted().joined(separator: " · ")).font(.caption2).foregroundStyle(.secondary)
+                if found.model.isEmpty, !found.hint.isEmpty, found.hint != "UHF-R" {
+                    Text(found.hint).font(.caption2.monospaced()).foregroundStyle(.secondary).lineLimit(1)
+                }
+                if !found.problem.isEmpty { Text(found.problem).font(.caption).foregroundColor(.orange) }
+            }
+            Spacer()
+            if added {
+                Text("Added").font(.caption).foregroundStyle(.secondary)
+            } else if found.onMacNetwork {
+                Button("Add") { state.addFound(found) }.disabled(found.reachable == false)
+            }
+        }
+        .padding(.vertical, 2)
     }
 }

@@ -363,29 +363,42 @@ final class AppState: ObservableObject {
         if let lid = o.libraryID { project.overlayScanIDs.removeAll { $0 == lid } }
     }
 
-    // MARK: Shure discovery
+    // MARK: Receiver search
 
     @Published var discovering = false
-    @Published var discovered: [String] = []
-
+    @Published private(set) var discovered: [FoundDevice] = []
     @Published var discoveryProgress = ""
-
     private var discoveryRun = 0
+    private var pendingParts = 0
 
-    /// Probes the receiver network (Network page) for Shure's control port (TCP 2202):
-    /// devices the Mac already knows about first, then every address (a 169.254 network is ~65,000).
-    func discoverShure() {
+    /// Searches the way Wireless Workbench does (Shure Discovery multicast + UHF-R broadcast) and, at the
+    /// same time, knocks on every address of the receiver network. `deep` also sweeps a whole 169.254 network.
+    func discoverShure(deep: Bool = false) {
         guard !discovering else { return }
         Self.raiseOpenFileLimit()
-        let known = Set(devices.map(\.host))
-        let d = NetworkManager.shared.discoveryHosts()
-        let hosts = (d.known + d.sweep).filter { !known.contains($0) }
-        guard !hosts.isEmpty else { coordMessage = "No network connection found"; return }
+        let net = NetworkManager.shared
+        let ifaces = net.receiverInterface.map { [$0] } ?? net.interfaces
+        guard !ifaces.isEmpty else { coordMessage = "No network connection found"; return }
         discovering = true
         discovered = []
         discoveryRun += 1
+        let run = discoveryRun
+        pendingParts = 2
+        discoveryProgress = "Asking Shure devices to identify themselves…"
+
+        ShureDiscovery.run(interfaces: ifaces, duration: 5, found: { [weak self] ip, kind, hint in
+            guard let self, run == self.discoveryRun else { return }
+            self.record(ip, kind: kind, source: kind == .shureUHFR ? "UHF-R broadcast" : "Shure Discovery", hint: hint)
+        }, done: { [weak self] in
+            guard let self, run == self.discoveryRun else { return }
+            self.partDone()
+        })
+
+        let d = net.discoveryHosts()
+        let sweep = d.linkLocal && !deep ? [] : d.sweep
+        let hosts = d.known + sweep
         let big = hosts.count > 2000
-        probe(hosts, from: 0, batch: big ? 512 : 128, run: discoveryRun, firstBatch: d.known.count)
+        probe(hosts, from: 0, batch: big ? 512 : 192, window: big ? 2.0 : 2.5, run: run, firstBatch: d.known.count)
     }
 
     func stopDiscovery() {
@@ -394,27 +407,75 @@ final class AppState: ObservableObject {
         discoveryProgress = ""
     }
 
-    private func probe(_ hosts: [String], from start: Int, batch: Int, run: Int, firstBatch: Int) {
+    private func partDone() {
+        pendingParts -= 1
+        if pendingParts <= 0 {
+            discovering = false
+            let n = discovered.count
+            discoveryProgress = n == 0 ? "" : "Found \(n) device\(n == 1 ? "" : "s")"
+        }
+    }
+
+    /// Adds or updates a found device, then checks it on the control port and reads its model and name.
+    private func record(_ ip: String, kind: DeviceKind, source: String, hint: String = "") {
+        let net = NetworkManager.shared
+        if let i = discovered.firstIndex(where: { $0.ip == ip }) {
+            discovered[i].sources.insert(source)
+            if discovered[i].hint.isEmpty { discovered[i].hint = hint }
+            if kind == .shureUHFR { discovered[i].kind = .shureUHFR }
+            return
+        }
+        var f = FoundDevice(ip: ip, kind: kind, sources: [source], hint: hint)
+        f.onMacNetwork = net.interface(containing: ip) != nil
+        if !f.onMacNetwork {
+            f.reachable = false
+            let ours = net.interfaces.map { "\($0.displayName) \($0.subnet)" }.joined(separator: ", ")
+            f.problem = "Answers Shure Discovery, but \(ip) isn't on this Mac's network (\(ours)). Set the receiver's IP mode to Automatic, or give it / the Mac an address in the same range."
+        } else if kind == .shureUHFR {
+            f.reachable = true
+        }
+        discovered.append(f)
+        discovered.sort { (IPv4.parse($0.ip) ?? 0) < (IPv4.parse($1.ip) ?? 0) }
+        guard f.onMacNetwork, kind == .shure else { return }
+        ShureDiscovery.identify(ip: ip) { [weak self] ok, model, name, problem in
+            guard let self, let i = self.discovered.firstIndex(where: { $0.ip == ip }) else { return }
+            self.discovered[i].reachable = ok
+            self.discovered[i].model = model
+            self.discovered[i].name = name
+            self.discovered[i].problem = ok ? "" : problem
+        }
+    }
+
+    /// Adds a found device to the project (uses the name it reported).
+    func addFound(_ f: FoundDevice) {
+        guard !devices.contains(where: { $0.host == f.ip }) else { return }
+        addDevice(kind: f.kind, host: f.ip, nickname: f.name)
+    }
+
+    func addAllFound() {
+        for f in discovered where f.reachable == true { addFound(f) }
+    }
+
+    private func probe(_ hosts: [String], from start: Int, batch: Int, window: Double, run: Int, firstBatch: Int) {
         guard run == discoveryRun else { return }
-        guard start < hosts.count else { discovering = false; discoveryProgress = ""; return }
-        // The ARP-known devices go in one quick first batch.
+        guard start < hosts.count else { partDone(); return }
         let size = (start == 0 && firstBatch > 0) ? min(firstBatch, 512) : batch
         let slice = hosts[start..<min(hosts.count, start + size)]
-        let left = Double(hosts.count - start) / Double(batch) * 1.3
-        discoveryProgress = start == 0 && firstBatch > 0
-            ? "Checking \(firstBatch) known device(s)…"
-            : "Checked \(start) of \(hosts.count)" + (left > 20 ? String(format: " – about %.0f min left", max(1, left / 60)) : "")
+        let left = Double(hosts.count - start) / Double(batch) * window
+        discoveryProgress = "Checked \(start) of \(hosts.count) addresses"
+            + (left > 20 ? String(format: " – about %.0f min left", max(1, left / 60)) : "")
         var conns: [NWConnection] = []
         for host in slice {
             let tcp = NWProtocolTCP.Options()
-            tcp.connectionTimeout = 2
+            tcp.connectionTimeout = Int(window.rounded(.up))
             let params = NetworkManager.shared.parameters(NWParameters(tls: nil, tcp: tcp))
             let c = NWConnection(host: NWEndpoint.Host(host), port: 2202, using: params)
             c.stateUpdateHandler = { [weak self, weak c] st in
                 switch st {
                 case .ready:
-                    if let self, !self.discovered.contains(host) { self.discovered.append(host) }
                     c?.cancel()
+                    guard let self, run == self.discoveryRun else { return }
+                    self.record(host, kind: .shure, source: "address scan")
                 case .waiting(let e), .failed(let e):
                     _ = NetworkManager.shared.explain(e, path: c?.currentPath)   // flags a Local Network denial
                 default: break
@@ -424,9 +485,9 @@ final class AppState: ObservableObject {
             conns.append(c)
         }
         let all = conns
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.3) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + window) { [weak self] in
             all.forEach { $0.cancel() }
-            self?.probe(hosts, from: start + size, batch: batch, run: run, firstBatch: firstBatch)
+            self?.probe(hosts, from: start + size, batch: batch, window: window, run: run, firstBatch: firstBatch)
         }
     }
 
