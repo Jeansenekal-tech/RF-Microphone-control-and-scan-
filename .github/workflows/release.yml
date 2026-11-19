@@ -1,9 +1,12 @@
 name: Release
 
-# Two ways to publish a new version (the app's built-in updater picks up the newest release):
-#   1. Bump CFBundleShortVersionString in Resources/Info.plist and push to main.
-#      A release v<version> is created if it doesn't exist yet.
-#   2. Push a tag:  git tag v0.2.0 && git push origin v0.2.0
+# Publish a new version: bump CFBundleShortVersionString in Resources/Info.plist and push to main
+# (or push a v* tag). The app's built-in updater picks up the newest release.
+#
+# Repository settings used (Settings › Secrets and variables › Actions) – see LICENSING.md:
+#   Variables: KEYGEN_ACCOUNT_ID, KEYGEN_PUBLIC_KEY, TRIAL_URL, PURCHASE_URL,
+#              RELEASES_REPO (public repo that hosts downloads, e.g. Jeansenekal-tech/unique-av-rf-releases)
+#   Secret:    RELEASES_TOKEN (fine-grained token with Contents: read & write on RELEASES_REPO)
 on:
   push:
     branches: [main]
@@ -20,6 +23,13 @@ concurrency:
   group: release
   cancel-in-progress: false
 
+env:
+  KEYGEN_ACCOUNT_ID: ${{ vars.KEYGEN_ACCOUNT_ID }}
+  KEYGEN_PUBLIC_KEY: ${{ vars.KEYGEN_PUBLIC_KEY }}
+  TRIAL_URL: ${{ vars.TRIAL_URL }}
+  PURCHASE_URL: ${{ vars.PURCHASE_URL }}
+  RELEASES_REPO: ${{ vars.RELEASES_REPO }}
+
 jobs:
   release:
     runs-on: macos-15
@@ -28,24 +38,36 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Work out version
+      - name: Work out version and target
         id: v
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN || github.token }}
+          IS_PRIVATE: ${{ github.event.repository.private }}
+          ALLOW_UNLICENSED: ${{ vars.ALLOW_UNLICENSED_RELEASE }}
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VERSION="${GITHUB_REF_NAME#v}"
           else
             VERSION=$(/usr/libexec/PlistBuddy -c "Print :CFBundleShortVersionString" Resources/Info.plist)
           fi
+          TARGET="${RELEASES_REPO:-$GITHUB_REPOSITORY}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          if gh release view "v$VERSION" >/dev/null 2>&1; then
-            echo "Release v$VERSION already exists – nothing to do."
-            echo "skip=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "Will publish v$VERSION"
-            echo "skip=false" >> "$GITHUB_OUTPUT"
+          echo "target=$TARGET" >> "$GITHUB_OUTPUT"
+
+          if gh release view "v$VERSION" --repo "$TARGET" >/dev/null 2>&1; then
+            echo "Release v$VERSION already exists in $TARGET – nothing to do."
+            echo "skip=true" >> "$GITHUB_OUTPUT"; exit 0
           fi
+          if [ -z "$KEYGEN_ACCOUNT_ID" ] && [ "$ALLOW_UNLICENSED" != "true" ]; then
+            echo "::error::Licensing isn't configured (KEYGEN_ACCOUNT_ID variable is empty), so this would publish a free, unlicensed build. Configure licensing (LICENSING.md) or set the ALLOW_UNLICENSED_RELEASE variable to true."
+            exit 1
+          fi
+          if [ "$IS_PRIVATE" = "true" ] && [ -z "$RELEASES_REPO" ]; then
+            echo "::error::This repository is private, so the app's updater can't read its releases. Set the RELEASES_REPO variable to a public repository (and the RELEASES_TOKEN secret)."
+            exit 1
+          fi
+          echo "Will publish v$VERSION to $TARGET"
+          echo "skip=false" >> "$GITHUB_OUTPUT"
 
       - name: Unit tests
         if: steps.v.outputs.skip == 'false'
@@ -65,8 +87,15 @@ jobs:
       - name: Publish release
         if: steps.v.outputs.skip == 'false'
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASES_TOKEN || github.token }}
         run: |
           V="v${{ steps.v.outputs.version }}"
-          gh release create "$V" build/Unique-AV-RF-Scan-Co-ord.zip build/WaveDesk.zip --target "$GITHUB_SHA" \
-            --title "Unique AV RF Scan Co-ord ${{ steps.v.outputs.version }}" --generate-notes
+          TARGET="${{ steps.v.outputs.target }}"
+          if [ "$TARGET" = "$GITHUB_REPOSITORY" ]; then
+            gh release create "$V" build/Unique-AV-RF-Scan-Co-ord.zip build/WaveDesk.zip --target "$GITHUB_SHA" \
+              --title "Unique AV RF Scan Co-ord ${{ steps.v.outputs.version }}" --generate-notes
+          else
+            gh release create "$V" build/Unique-AV-RF-Scan-Co-ord.zip build/WaveDesk.zip --repo "$TARGET" \
+              --title "Unique AV RF Scan Co-ord ${{ steps.v.outputs.version }}" \
+              --notes "Download **Unique-AV-RF-Scan-Co-ord.zip**, unzip and move the app to Applications. Installed copies update themselves."
+          fi

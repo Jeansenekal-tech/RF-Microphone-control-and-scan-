@@ -1,0 +1,6 @@
+name = "uniqueav-rf-trial"
+main = "src/index.js"
+compatibility_date = "2024-09-23"
+
+# Set these with:  npx wrangler secret put KEYGEN_TOKEN   (etc.)
+# KEYGEN_ACCOUNT_ID, KEYGEN_TOKEN, KEYGEN_TRIAL_POLICY_ID

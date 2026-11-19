@@ -16,38 +16,60 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
 }
 
+/// Owns the app state, which is only created once the licence check has unlocked the app.
+final class AppHolder: ObservableObject {
+    @Published private(set) var state: AppState?
+    let updater = Updater()
+
+    init() { updater.checkOnLaunch() }
+
+    func start() {
+        if state == nil { state = AppState(updater: updater) }
+    }
+}
+
 @main
 struct WaveDeskApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
-    @StateObject private var state = AppState()
+    @StateObject private var license = LicenseManager()
+    @StateObject private var holder = AppHolder()
 
     var body: some Scene {
         WindowGroup(AppInfo.name) {
-            RootView()
-                .environmentObject(state)
-                .frame(minWidth: 1100, minHeight: 720)
-                .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
-                    state.saveNow()
+            Group {
+                if license.sessionUnlocked, let state = holder.state {
+                    RootView()
+                        .environmentObject(state)
+                        .environmentObject(license)
+                        .onReceive(NotificationCenter.default.publisher(for: NSApplication.willTerminateNotification)) { _ in
+                            state.saveNow()
+                        }
+                } else {
+                    LicenseGateView(updater: holder.updater).environmentObject(license)
                 }
+            }
+            .frame(minWidth: 1100, minHeight: 720)
+            .onAppear { if license.sessionUnlocked { holder.start() } }
+            .onChange(of: license.sessionUnlocked) { unlocked in if unlocked { holder.start() } }
         }
         .commands {
             CommandGroup(replacing: .newItem) {}
             CommandGroup(after: .appInfo) {
-                Button("Check for Updates…") { state.updater.check(userInitiated: true) }
+                Button("Check for Updates…") { holder.updater.check(userInitiated: true) }
             }
             CommandMenu("Scan") {
-                Button(state.analyzer.scanning ? "Stop scan" : "Start scan") {
-                    if state.analyzer.scanning { state.analyzer.stopScan() } else { state.analyzer.startScan() }
+                Button("Start / stop scan") {
+                    guard let a = holder.state?.analyzer else { return }
+                    if a.scanning { a.stopScan() } else { a.startScan() }
                 }
                 .keyboardShortcut("r", modifiers: [.command, .shift])
-                Button("Connect analyzer") { state.analyzer.connect() }
-                Button("Clear peak hold") { state.analyzer.clearPeak() }
+                Button("Connect analyzer") { holder.state?.analyzer.connect() }
+                Button("Clear peak hold") { holder.state?.analyzer.clearPeak() }
             }
             CommandMenu("Coordination") {
-                Button("Find frequencies") { state.runCoordination() }
+                Button("Find frequencies") { holder.state?.runCoordination() }
                     .keyboardShortcut("f", modifiers: [.command, .shift])
-                Button("Apply all proposals") { state.applyAllProposals() }
-                    .disabled(state.proposals.isEmpty)
+                Button("Apply all proposals") { holder.state?.applyAllProposals() }
             }
         }
     }
@@ -82,6 +104,7 @@ enum Screen: String, CaseIterable, Identifiable {
 
 struct RootView: View {
     @EnvironmentObject var state: AppState
+    @EnvironmentObject var license: LicenseManager
     @State private var screen: Screen? = .dashboard
 
     var body: some View {
@@ -122,6 +145,7 @@ struct RootView: View {
                 } label: {
                     Label("Project", systemImage: "folder")
                 }
+                TrialBadge(license: license)
                 UpdateToolbarButton(updater: state.updater)
                 AnalyzerToolbarButton(analyzer: state.analyzer)
                 Button { screen = .health } label: {

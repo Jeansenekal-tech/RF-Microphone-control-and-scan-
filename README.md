@@ -36,6 +36,7 @@ coordinate intermod-free frequencies, and keep an eye on everything during the s
 | **Phone / tablet monitor** | Built-in web page with every channel live (frequency, RF, audio, battery, alerts) and the spectrum. Open it by scanning the QR code on the *Remote & Companion* page. Optional mute/scan control. |
 | **Bitfocus Companion** | HTTP API for Stream Deck buttons through Companion's *Generic HTTP Requests* module: mute/unmute, gain, start/stop scan, find and apply frequencies, plus plain-text values (battery, RF, mute, alerts) for feedback. |
 | **Auto update** | Checks this repo's GitHub Releases, downloads the new version, replaces the app and restarts it (*Unique AV RF Scan Co-ord › Check for Updates…*). |
+| **Licensing** | 60-day trial, then one Mac per licence (Keygen). Works 30 days offline. Move to a new Mac yourself, even if the old one is lost or broken. See [LICENSING.md](LICENSING.md). |
 | **Regions** | **South Africa** (8 MHz UHF Ch21–69, IMT700/IMT800 mobile bands blocked, 470–694 MHz default), United States (6 MHz, Ch37 + 600 MHz mobile blocked), Europe/CEPT. |
 
 ## Build and run (on your Mac)
@@ -179,6 +180,8 @@ Sources/WaveDesk/       the macOS app
   SerialPort, SpectrumSources, AnalyzerController          tinySA + scanning + waterfall
   AppState, Health, Telemetry, ScanLibrary, Inventory      app logic and storage
   HTTPServer, RemoteController, MonitorPage, Updater       web monitor, Companion API, updates
+  Licensing, BuildConfig                                   Keygen licensing (build-time settings)
+licensing/trial-worker/  Cloudflare Worker that issues 60-day trials
   UI/                                                       SwiftUI screens
 Tests/WaveDeskCoreTests/
 ```

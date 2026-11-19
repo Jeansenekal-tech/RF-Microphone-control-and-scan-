@@ -32,6 +32,8 @@ struct ProjectView: View {
                     }
                 }
 
+                LicenseSection()
+
                 Section("Region") {
                     Picker("Country / region", selection: $state.project.regionID) {
                         ForEach(RegionProfile.all) { Text($0.name).tag($0.id) }

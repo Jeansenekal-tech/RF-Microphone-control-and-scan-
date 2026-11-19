@@ -4,7 +4,8 @@ import AppKit
 /// Checks GitHub Releases for a newer WaveDesk, downloads `WaveDesk.zip`, swaps the app bundle
 /// and relaunches. Releases are produced by .github/workflows/release.yml when a `v*` tag is pushed.
 final class Updater: ObservableObject {
-    static let repo = "Jeansenekal-tech/rf-microphone-control-and-scan-"
+    /// Public repository that hosts the releases (set at build time, see BuildConfig).
+    static var repo: String { BuildConfig.releasesRepo }
     static var currentVersion: String {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0-dev"
     }

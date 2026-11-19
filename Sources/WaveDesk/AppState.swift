@@ -48,7 +48,7 @@ final class AppState: ObservableObject {
     let inventory = InventoryStore()
     let telemetry = TelemetryStore()
     let health = HealthMonitor()
-    let updater = Updater()
+    let updater: Updater
     private(set) var remote: RemoteController!
 
     private var sinks: [AnyCancellable] = []
@@ -58,7 +58,8 @@ final class AppState: ObservableObject {
 
     var region: RegionProfile { RegionProfile.byID(project.regionID) }
 
-    init() {
+    init(updater: Updater) {
+        self.updater = updater
         let last = UserDefaults.standard.string(forKey: "wavedesk.lastProject") ?? "My first show"
         project = Self.loadProject(named: last) ?? Self.newProjectValue(named: last)
         refreshProjectNames()
@@ -70,7 +71,6 @@ final class AppState: ObservableObject {
         RunLoop.main.add(t, forMode: .common)
         healthTimer = t
         remote = RemoteController(state: self)
-        updater.checkOnLaunch()
         if CommandLine.arguments.contains("--demo") { startDemo() }
     }
 
