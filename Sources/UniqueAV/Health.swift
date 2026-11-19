@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 import UserNotifications
-import WaveDeskCore
+import UniqueAVCore
 
 struct HealthSettings: Codable, Equatable {
     var enabled = true

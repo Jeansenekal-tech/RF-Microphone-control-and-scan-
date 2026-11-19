@@ -1,6 +1,6 @@
 import Foundation
 import CoreGraphics
-import WaveDeskCore
+import UniqueAVCore
 
 /// A scan loaded from a file (Shure Wireless Workbench, Sennheiser WSM, RF Explorer, tinySA app...).
 struct ImportedScan: Identifiable {
@@ -90,7 +90,7 @@ final class AnalyzerController: ObservableObject {
 
     private var source: SpectrumSource?
     private let simulated = SimulatedSource()
-    private let queue = DispatchQueue(label: "wavedesk.analyzer")
+    private let queue = DispatchQueue(label: "uniqueav.analyzer")
     private let stopLock = NSLock()
     private var stopFlag = false
     private var shouldStop: Bool {
@@ -275,7 +275,7 @@ final class AnalyzerController: ObservableObject {
         let text = String(data: data, encoding: .utf8) ?? String(decoding: data, as: UTF8.self)
         let pts = ScanCSV.parse(text)
         guard pts.count >= 2 else {
-            throw NSError(domain: "WaveDesk", code: 1, userInfo: [NSLocalizedDescriptionKey:
+            throw NSError(domain: "UniqueAV", code: 1, userInfo: [NSLocalizedDescriptionKey:
                 "No frequency/level pairs found in \(url.lastPathComponent). Export the scan as CSV or TXT (MHz, dBm)."])
         }
         return pts

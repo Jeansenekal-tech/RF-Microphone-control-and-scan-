@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-import WaveDeskCore
+import UniqueAVCore
 
 struct ProjectView: View {
     @EnvironmentObject var state: AppState
@@ -21,11 +21,11 @@ struct ProjectView: View {
                         }
                         Button("Export project file…") {
                             if let d = state.exportProjectData() {
-                                Panels.save(d, suggestedName: state.project.name + ".wdproj", types: [Panels.projectType])
+                                Panels.save(d, suggestedName: state.project.name + "." + Storage.projectExtension, types: [Panels.projectType])
                             }
                         }
                         Button("Import project file…") {
-                            if let url = Panels.open(types: [Panels.projectType, .json]).first {
+                            if let url = Panels.open(types: [Panels.projectType, Panels.legacyProjectType, .json]).first {
                                 do { try state.importProject(from: url) } catch { Panels.alert("Import failed", error.localizedDescription) }
                             }
                         }

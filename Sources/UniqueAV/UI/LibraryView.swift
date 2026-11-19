@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-import WaveDeskCore
+import UniqueAVCore
 
 struct LibraryView: View {
     @EnvironmentObject var state: AppState

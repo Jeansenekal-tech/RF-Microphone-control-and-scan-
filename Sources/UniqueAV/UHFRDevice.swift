@@ -1,5 +1,5 @@
 import Foundation
-import WaveDeskCore
+import UniqueAVCore
 
 /// Shure UHF-R receivers (UR4S single, UR4D dual) over the rear Ethernet port.
 ///

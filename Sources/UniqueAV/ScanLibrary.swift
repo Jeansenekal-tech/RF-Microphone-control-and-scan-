@@ -1,5 +1,5 @@
 import Foundation
-import WaveDeskCore
+import UniqueAVCore
 
 /// A stored scan, tagged with the venue so it can be reused next time you work there.
 struct LibraryScan: Codable, Identifiable, Equatable {

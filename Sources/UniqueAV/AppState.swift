@@ -1,7 +1,7 @@
 import Foundation
 import Combine
 import Network
-import WaveDeskCore
+import UniqueAVCore
 
 struct ChannelPlan: Codable, Equatable {
     var include = true      // let the coordinator choose a new frequency for this channel
@@ -60,7 +60,7 @@ final class AppState: ObservableObject {
 
     init(updater: Updater) {
         self.updater = updater
-        let last = UserDefaults.standard.string(forKey: "wavedesk.lastProject") ?? "My first show"
+        let last = UserDefaults.standard.string(forKey: "uniqueav.lastProject") ?? "My first show"
         project = Self.loadProject(named: last) ?? Self.newProjectValue(named: last)
         refreshProjectNames()
         // The analyzer is a separate ObservableObject; forward its changes so markers/overlays redraw.
@@ -401,7 +401,7 @@ final class AppState: ObservableObject {
     // MARK: Projects
 
     private static func url(for name: String) -> URL {
-        Storage.projects.appendingPathComponent(Storage.safeFileName(name) + ".wdproj")
+        Storage.projects.appendingPathComponent(Storage.safeFileName(name) + ".\(Storage.projectExtension)")
     }
 
     private static func loadProject(named name: String) -> Project? {
@@ -417,7 +417,7 @@ final class AppState: ObservableObject {
 
     func refreshProjectNames() {
         let files = (try? FileManager.default.contentsOfDirectory(at: Storage.projects, includingPropertiesForKeys: nil)) ?? []
-        var names = files.filter { $0.pathExtension == "wdproj" }.map { $0.deletingPathExtension().lastPathComponent }
+        var names = files.filter { $0.pathExtension == Storage.projectExtension }.map { $0.deletingPathExtension().lastPathComponent }
         if !names.contains(Storage.safeFileName(project.name)) { names.append(Storage.safeFileName(project.name)) }
         projectNames = names.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
     }
@@ -431,7 +431,7 @@ final class AppState: ObservableObject {
         coordMessage = ""
         analyzer.imported = []
         for id in project.overlayScanIDs { if let s = library.scan(id) { analyzer.showOverlay(s) } }
-        UserDefaults.standard.set(project.name, forKey: "wavedesk.lastProject")
+        UserDefaults.standard.set(project.name, forKey: "uniqueav.lastProject")
         recomputeMarkers()
     }
 
@@ -462,7 +462,7 @@ final class AppState: ObservableObject {
         saveNow()
         project.name = name
         saveNow()
-        UserDefaults.standard.set(name, forKey: "wavedesk.lastProject")
+        UserDefaults.standard.set(name, forKey: "uniqueav.lastProject")
         refreshProjectNames()
     }
 

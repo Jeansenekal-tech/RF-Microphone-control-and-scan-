@@ -1,11 +1,14 @@
 import Foundation
 
-/// Files live in ~/Library/Application Support/WaveDesk/{Projects,Scans,inventory.json}.
+/// Files live in ~/Library/Application Support/Unique AV RF Scan Co-ord/{Projects,Scans,inventory.json}.
 enum Storage {
+    static let folderName = "Unique AV RF Scan Co-ord"
+    static let projectExtension = "uavproj"
+
     static var root: URL {
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
             ?? URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Library/Application Support")
-        return ensure(base.appendingPathComponent("WaveDesk", isDirectory: true))
+        return ensure(base.appendingPathComponent(folderName, isDirectory: true))
     }
     static var projects: URL { ensure(root.appendingPathComponent("Projects", isDirectory: true)) }
     static var scans: URL { ensure(root.appendingPathComponent("Scans", isDirectory: true)) }
@@ -35,7 +38,7 @@ enum Storage {
             let data = try encoder.encode(value)
             try data.write(to: url, options: .atomic)
         } catch {
-            NSLog("WaveDesk: failed to save \(url.lastPathComponent): \(error)")
+            NSLog("UniqueAV: failed to save \(url.lastPathComponent): \(error)")
         }
     }
 

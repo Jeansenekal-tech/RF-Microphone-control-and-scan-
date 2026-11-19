@@ -1,6 +1,6 @@
 import Foundation
 import Network
-import WaveDeskCore
+import UniqueAVCore
 
 /// Shure receiver over TCP 2202. Reconnects automatically.
 final class ShureDevice: Device {

@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 
-/// Checks GitHub Releases for a newer WaveDesk, downloads `WaveDesk.zip`, swaps the app bundle
+/// Checks GitHub Releases for a newer version, downloads the app zip, swaps the app bundle
 /// and relaunches. Releases are produced by .github/workflows/release.yml when a `v*` tag is pushed.
 final class Updater: ObservableObject {
     /// Public repository that hosts the releases (set at build time, see BuildConfig).
@@ -20,11 +20,7 @@ final class Updater: ObservableObject {
         var prerelease: Bool
         var assets: [Asset]
         var version: String { tag_name.hasPrefix("v") ? String(tag_name.dropFirst()) : tag_name }
-        /// Prefer the named app zip; "WaveDesk.zip" is the legacy asset kept for 0.1.0's updater.
-        var zip: Asset? {
-            assets.first { $0.name.hasSuffix(".zip") && $0.name != "WaveDesk.zip" }
-                ?? assets.first { $0.name.hasSuffix(".zip") }
-        }
+        var zip: Asset? { assets.first { $0.name.hasSuffix(".zip") } }
     }
 
     @Published var autoCheck: Bool { didSet { UserDefaults.standard.set(autoCheck, forKey: "update.auto") } }
@@ -64,7 +60,7 @@ final class Updater: ObservableObject {
         status = "Checking for updates…"
         var req = URLRequest(url: URL(string: "https://api.github.com/repos/\(Self.repo)/releases/latest")!)
         req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        req.setValue("WaveDesk-Updater", forHTTPHeaderField: "User-Agent")
+        req.setValue("UniqueAV-RF-Updater", forHTTPHeaderField: "User-Agent")
         URLSession.shared.dataTask(with: req) { data, resp, err in
             DispatchQueue.main.async {
                 self.busy = false
@@ -107,7 +103,7 @@ final class Updater: ObservableObject {
             // Move the download before this callback returns (the temp file is deleted afterwards).
             var zipURL: URL?
             if let tmp {
-                let dest = FileManager.default.temporaryDirectory.appendingPathComponent("WaveDesk-update-\(UUID().uuidString).zip")
+                let dest = FileManager.default.temporaryDirectory.appendingPathComponent("UniqueAV-update-\(UUID().uuidString).zip")
                 if (try? FileManager.default.moveItem(at: tmp, to: dest)) != nil { zipURL = dest }
             }
             DispatchQueue.main.async {
@@ -120,7 +116,7 @@ final class Updater: ObservableObject {
     private func unpackAndSwap(_ zip: URL, _ r: Release) {
         status = "Installing…"
         let fm = FileManager.default
-        let work = fm.temporaryDirectory.appendingPathComponent("WaveDesk-update-\(UUID().uuidString)", isDirectory: true)
+        let work = fm.temporaryDirectory.appendingPathComponent("UniqueAV-update-\(UUID().uuidString)", isDirectory: true)
         do {
             try fm.createDirectory(at: work, withIntermediateDirectories: true)
             let unzip = Process()
@@ -131,7 +127,7 @@ final class Updater: ObservableObject {
             guard unzip.terminationStatus == 0,
                   let newApp = try fm.contentsOfDirectory(at: work, includingPropertiesForKeys: nil)
                     .first(where: { $0.pathExtension == "app" }),
-                  Bundle(url: newApp)?.bundleIdentifier == Bundle.main.bundleIdentifier else {
+                  AppInfo.bundleIDs.contains(Bundle(url: newApp)?.bundleIdentifier ?? "") else {
                 fail("The downloaded update isn't a valid \(AppInfo.name) app", r); return
             }
             // Downloads made by the app aren't quarantined, but clear the flag just in case.

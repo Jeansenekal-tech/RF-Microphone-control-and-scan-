@@ -1,5 +1,5 @@
 import Foundation
-import WaveDeskCore
+import UniqueAVCore
 
 /// Anything that can sweep a frequency range. Called from a background queue.
 /// To support another live scanner (e.g. a Shure/Sennheiser unit once its protocol is known),

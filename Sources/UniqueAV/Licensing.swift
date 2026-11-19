@@ -3,7 +3,7 @@ import AppKit
 import CryptoKit
 import IOKit
 import Security
-import WaveDeskCore
+import UniqueAVCore
 
 /// Licensing via Keygen (keygen.sh):
 /// * one Mac per licence (machine activation bound to a hardware fingerprint)
@@ -369,7 +369,7 @@ final class LicenseManager: ObservableObject {
 
 /// Small Keychain wrapper (generic passwords for this app).
 enum Keychain {
-    private static let service = "app.wavedesk.licence"
+    private static let service = "com.uniqueav.rfscancoord.licence"
 
     static func set(_ value: String, _ account: String) {
         delete(account)

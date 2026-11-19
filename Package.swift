@@ -2,16 +2,16 @@
 import PackageDescription
 
 let package = Package(
-    name: "WaveDesk",
+    name: "UniqueAV",
     platforms: [.macOS(.v13)],
     products: [
-        .executable(name: "WaveDesk", targets: ["WaveDesk"]),
+        .executable(name: "UniqueAV", targets: ["UniqueAV"]),
     ],
     targets: [
-        // Pure logic: protocols, parsers, frequency coordination. No UI, unit-tested.
-        .target(name: "WaveDeskCore", path: "Sources/WaveDeskCore"),
-        // The native macOS SwiftUI app.
-        .executableTarget(name: "WaveDesk", dependencies: ["WaveDeskCore"], path: "Sources/WaveDesk"),
-        .testTarget(name: "WaveDeskCoreTests", dependencies: ["WaveDeskCore"], path: "Tests/WaveDeskCoreTests"),
+        // Pure logic: protocols, parsers, frequency coordination, licence files. No UI, unit-tested.
+        .target(name: "UniqueAVCore", path: "Sources/UniqueAVCore"),
+        // The native macOS SwiftUI app "Unique AV RF Scan Co-ord".
+        .executableTarget(name: "UniqueAV", dependencies: ["UniqueAVCore"], path: "Sources/UniqueAV"),
+        .testTarget(name: "UniqueAVCoreTests", dependencies: ["UniqueAVCore"], path: "Tests/UniqueAVCoreTests"),
     ]
 )

@@ -2,8 +2,10 @@ import SwiftUI
 import AppKit
 
 enum AppInfo {
-    /// The name shown to users. (Internally the project, bundle ID and data folder are still "WaveDesk".)
     static let name = "Unique AV RF Scan Co-ord"
+    static let bundleID = "com.uniqueav.rfscancoord"
+    /// Accepted by the updater (includes the bundle ID used before the rename).
+    static let bundleIDs: Set<String> = [bundleID, "app.wavedesk.WaveDesk"]
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -29,10 +31,14 @@ final class AppHolder: ObservableObject {
 }
 
 @main
-struct WaveDeskApp: App {
+struct UniqueAVApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @StateObject private var license = LicenseManager()
     @StateObject private var holder = AppHolder()
+
+    init() {
+        Migration.run()   // must happen before anything reads settings or the data folder
+    }
 
     var body: some Scene {
         WindowGroup(AppInfo.name) {

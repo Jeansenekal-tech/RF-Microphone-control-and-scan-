@@ -28,7 +28,7 @@ jobs:
           mkdir -p smoke
           open "build/Unique AV RF Scan Co-ord.app" --args --demo
           sleep 20
-          KEY=$(defaults read app.wavedesk.WaveDesk remote.key)
+          KEY=$(defaults read com.uniqueav.rfscancoord remote.key)
           curl -s -o smoke/locked.html -w "locked page: %{http_code}\n" http://127.0.0.1:8088/
           curl -sf "http://127.0.0.1:8088/api/state?key=$KEY" -o smoke/state.json
           curl -sf "http://127.0.0.1:8088/api/spectrum?key=$KEY" -o smoke/spectrum.json
@@ -40,12 +40,12 @@ jobs:
         run: |
           osascript -e 'quit app "Unique AV RF Scan Co-ord"' || true
           sleep 3
-          pkill -f "MacOS/WaveDesk" || true
+          pkill -f "MacOS/UniqueAV" || true
           KEYGEN_ACCOUNT_ID=ci-test KEYGEN_PUBLIC_KEY=$(printf '0%.0s' {1..64}) ./build_app.sh
-          grep -q 'keygenAccountID = ""' Sources/WaveDesk/BuildConfig.swift && echo "BuildConfig restored"
+          grep -q 'keygenAccountID = ""' Sources/UniqueAV/BuildConfig.swift && echo "BuildConfig restored"
           open "build/Unique AV RF Scan Co-ord.app"
           sleep 12
-          pgrep -f "MacOS/WaveDesk" >/dev/null || { echo "::error::App is not running (crashed?)"; exit 1; }
+          pgrep -f "MacOS/UniqueAV" >/dev/null || { echo "::error::App is not running (crashed?)"; exit 1; }
           echo "app running"
           if curl -s -m 3 -o /dev/null http://127.0.0.1:8088/; then
             echo "::error::Web server is running – the app was not locked"; exit 1

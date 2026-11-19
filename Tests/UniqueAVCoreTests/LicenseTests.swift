@@ -1,6 +1,6 @@
 import XCTest
 import CryptoKit
-@testable import WaveDeskCore
+@testable import UniqueAVCore
 
 final class LicenseTests: XCTestCase {
     let key = Curve25519.Signing.PrivateKey()

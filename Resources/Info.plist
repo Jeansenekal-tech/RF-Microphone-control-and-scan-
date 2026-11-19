@@ -7,9 +7,9 @@
     <key>CFBundleDisplayName</key>
     <string>Unique AV RF Scan Co-ord</string>
     <key>CFBundleIdentifier</key>
-    <string>app.wavedesk.WaveDesk</string>
+    <string>com.uniqueav.rfscancoord</string>
     <key>CFBundleExecutable</key>
-    <string>WaveDesk</string>
+    <string>UniqueAV</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>

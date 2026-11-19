@@ -1,6 +1,6 @@
 import Foundation
 
-/// A receiver WaveDesk can't talk to (no published control protocol): Wisycom, Sound Devices Astral,
+/// A receiver this app can't talk to (no published control protocol): Wisycom, Sound Devices Astral,
 /// Deity THEOS. Channel names and frequencies are typed in and saved with the project, so these
 /// receivers still take part in coordination, conflict checks, the spectrum and the monitor.
 /// Frequencies chosen by the coordinator have to be set on the receiver by hand.

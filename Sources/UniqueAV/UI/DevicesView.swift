@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-import WaveDeskCore
+import UniqueAVCore
 
 struct DevicesView: View {
     @EnvironmentObject var state: AppState
@@ -112,7 +112,7 @@ struct DevicesView: View {
         case .sennheiserEWDX: return "EW-DX EM 2 / EM 4 via Sennheiser's SSCv2 API (HTTPS). Experimental – please report what works."
         case .sennheiserSSC: return "Digital 6000 via SSC (JSON over UDP 45). Experimental."
         case .wisycom: return "Wisycom doesn't publish a control protocol (its Wisycom Manager software is the only controller), so channels are entered by hand. They're still part of coordination, conflict checks, the spectrum and the monitor – set new frequencies on the receiver yourself."
-        case .soundDevices: return "Sound Devices Astral has no public control API. Enter channels by hand; give the IP to open the A20-Nexus web app from WaveDesk. Coordinated frequencies are set on the receiver (or in its web app / Wingman)."
+        case .soundDevices: return "Sound Devices Astral has no public control API. Enter channels by hand; give the IP to open the A20-Nexus web app from here. Coordinated frequencies are set on the receiver (or in its web app / Wingman)."
         case .deity: return "Deity THEOS receivers have no network port (control is via Bluetooth in the Sidus Audio app), so channels are entered by hand. Set new frequencies in the app or on the receiver."
         case .demo: return "A simulated 4-channel receiver for trying the app without hardware."
         }

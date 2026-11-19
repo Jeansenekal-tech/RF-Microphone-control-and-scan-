@@ -1,5 +1,5 @@
 import XCTest
-@testable import WaveDeskCore
+@testable import UniqueAVCore
 
 final class ShureProtocolTests: XCTestCase {
     func testTokensKeepBracedNames() {

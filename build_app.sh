@@ -13,8 +13,8 @@ ARCH_FLAGS=()
 if [ "${UNIVERSAL:-0}" = "1" ]; then ARCH_FLAGS=(--arch arm64 --arch x86_64); fi
 
 # Licensing / distribution settings for release builds (see LICENSING.md). When set, they are
-# compiled into the app via Sources/WaveDesk/BuildConfig.swift, which is restored afterwards.
-CONFIG=Sources/WaveDesk/BuildConfig.swift
+# compiled into the app via Sources/UniqueAV/BuildConfig.swift, which is restored afterwards.
+CONFIG=Sources/UniqueAV/BuildConfig.swift
 if [ -n "${KEYGEN_ACCOUNT_ID:-}" ]; then
   for v in KEYGEN_ACCOUNT_ID KEYGEN_PUBLIC_KEY TRIAL_URL PURCHASE_URL RELEASES_REPO; do
     if printf '%s' "${!v:-}" | grep -q '["\\]'; then echo "✗ $v contains quotes or backslashes"; exit 1; fi
@@ -39,13 +39,13 @@ fi
 
 echo "▸ Building release binary…"
 swift build -c release "${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"}"
-BIN="$(swift build -c release "${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"}" --show-bin-path)/WaveDesk"
+BIN="$(swift build -c release "${ARCH_FLAGS[@]+"${ARCH_FLAGS[@]}"}" --show-bin-path)/UniqueAV"
 
 APP="build/Unique AV RF Scan Co-ord.app"
 echo "▸ Assembling ${APP}…"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
-cp "$BIN" "$APP/Contents/MacOS/WaveDesk"
+cp "$BIN" "$APP/Contents/MacOS/UniqueAV"
 cp Resources/Info.plist "$APP/Contents/Info.plist"
 if [ -d Resources/AppIcon.iconset ]; then
   iconutil -c icns Resources/AppIcon.iconset -o "$APP/Contents/Resources/AppIcon.icns"

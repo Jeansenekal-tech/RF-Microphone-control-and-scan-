@@ -30,7 +30,7 @@ coordinate intermod-free frequencies, and keep an eye on everything during the s
 | **Time-of-use** | Groups with time slots (e.g. *Act 1 18:00–19:30*). Groups that never overlap can share frequencies, and conflicts are only flagged between transmitters on air at the same time. 24-h schedule chart. |
 | **Health check** | Every second: receiver offline, low RF, low battery, audio clipping, frequency in a restricted band, intermod/spacing conflict, signal at your frequency in a reference scan. Mac notifications + beep on critical. |
 | **Telemetry timeline** | Records RF, audio, battery and online state per channel (12 h), with alert events on the timeline. Hover to read values. Export CSV. |
-| **Projects** | One project per show/venue: receivers, groups, plans, thresholds, region and overlays. Duplicate, export/import `.wdproj`. |
+| **Projects** | One project per show/venue: receivers, groups, plans, thresholds, region and overlays. Duplicate, export/import `.uavproj`. |
 | **Venue scan library** | Every saved or imported scan is kept, tagged by venue, to reuse next time you work there. |
 | **Inventory** | Equipment list (make, model, serial, tag, band), check-out/check-in with a log, totals per model, CSV export. |
 | **Phone / tablet monitor** | Built-in web page with every channel live (frequency, RF, audio, battery, alerts) and the spectrum. Open it by scanning the QR code on the *Remote & Companion* page. Optional mute/scan control. |
@@ -38,6 +38,18 @@ coordinate intermod-free frequencies, and keep an eye on everything during the s
 | **Auto update** | Checks this repo's GitHub Releases, downloads the new version, replaces the app and restarts it (*Unique AV RF Scan Co-ord › Check for Updates…*). |
 | **Licensing** | 60-day trial, then one Mac per licence (Keygen). Works 30 days offline. Move to a new Mac yourself, even if the old one is lost or broken. See [LICENSING.md](LICENSING.md). |
 | **Regions** | **South Africa** (8 MHz UHF Ch21–69, IMT700/IMT800 mobile bands blocked, 470–694 MHz default), United States (6 MHz, Ch37 + 600 MHz mobile blocked), Europe/CEPT. |
+
+## Install (on your Mac)
+
+In Terminal, inside this folder:
+
+```bash
+./install.sh
+```
+
+It installs Apple's build tools if they're missing (run it again after they finish), builds the app, puts it
+in **Applications** and opens it. Use `./install.sh --demo` to open it with a demo receiver and simulated analyzer.
+Run the same command again to update after pulling new code.
 
 ## Build and run (on your Mac)
 
@@ -115,7 +127,7 @@ Add a **Generic: HTTP Requests** connection in Companion and use **GET** actions
 | Alert count | `/api/alerts/count` |
 | Everything (JSON) | `/api/state`, `/api/spectrum`, `/api/channels` |
 
-Control actions need **Allow control** to be on. The key can also be sent as an `X-WaveDesk-Key` header.
+Control actions need **Allow control** to be on. The key can also be sent as an `X-UniqueAV-Key` header.
 
 ## Updates and releases
 
@@ -163,19 +175,17 @@ Source artwork is in `Resources/Logo/` (`AppIcon.svg`, `Logo.svg`, `Logo-dark.sv
 
 ## Where data is stored
 
-(The internal code name is *WaveDesk*, which is why folders and the source code use that name.)
+`~/Library/Application Support/Unique AV RF Scan Co-ord/` (data from older versions is moved here automatically)
 
-`~/Library/Application Support/WaveDesk/`
-
-* `Projects/*.wdproj`: projects (JSON). EW-DX SSCv2 passwords are stored in plain text in these files.
+* `Projects/*.uavproj`: projects (JSON). EW-DX SSCv2 passwords are stored in plain text in these files.
 * `Scans/*.json`: venue scan library.
 * `inventory.json`: equipment list and check-out log.
 
 ## Code layout
 
 ```
-Sources/WaveDeskCore/   protocols, parsers, regions, schedule, frequency coordination (unit-tested)
-Sources/WaveDesk/       the macOS app
+Sources/UniqueAVCore/   protocols, parsers, regions, schedule, frequency coordination (unit-tested)
+Sources/UniqueAV/       the macOS app
   ShureDevice, UHFRDevice, SennheiserDevices, EWDXDevice, ManualDevice, DemoDevice   receivers
   SerialPort, SpectrumSources, AnalyzerController          tinySA + scanning + waterfall
   AppState, Health, Telemetry, ScanLibrary, Inventory      app logic and storage
@@ -183,5 +193,5 @@ Sources/WaveDesk/       the macOS app
   Licensing, BuildConfig                                   Keygen licensing (build-time settings)
 licensing/trial-worker/  Cloudflare Worker that issues 60-day trials
   UI/                                                       SwiftUI screens
-Tests/WaveDeskCoreTests/
+Tests/UniqueAVCoreTests/
 ```

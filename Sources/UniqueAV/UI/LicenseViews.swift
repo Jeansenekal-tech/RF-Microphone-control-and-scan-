@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-import WaveDeskCore
+import UniqueAVCore
 
 /// Shown at launch until the app has a valid licence or trial.
 struct LicenseGateView: View {

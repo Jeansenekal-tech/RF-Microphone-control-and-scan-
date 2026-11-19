@@ -105,7 +105,8 @@ enum Panels {
     }
 
     static let scanTypes: [UTType] = [.commaSeparatedText, .plainText, .tabSeparatedText, .text]
-    static let projectType: UTType = UTType(filenameExtension: "wdproj") ?? .json
+    static let projectType: UTType = UTType(filenameExtension: "uavproj") ?? .json
+    static let legacyProjectType: UTType = UTType(filenameExtension: "wdproj") ?? .json
 }
 
 /// A titled box used on the inspector panels.

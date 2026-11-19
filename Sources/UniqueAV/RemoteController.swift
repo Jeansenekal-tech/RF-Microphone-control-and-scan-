@@ -2,7 +2,7 @@ import Foundation
 import AppKit
 import CoreImage
 import CoreImage.CIFilterBuiltins
-import WaveDeskCore
+import UniqueAVCore
 
 /// Built-in web server: phone/tablet monitor page (opened via QR code) and an HTTP API
 /// for Bitfocus Companion (Stream Deck) and other control systems.
@@ -80,7 +80,7 @@ final class RemoteController: ObservableObject {
         if r.path == "/icon.png" || r.path == "/apple-touch-icon.png" || r.path == "/favicon.ico" {
             return HTTPResponse(status: 200, contentType: "image/png", body: MonitorIcon.png)
         }
-        let given = r.query["key"] ?? r.headers["x-wavedesk-key"] ?? ""
+        let given = r.query["key"] ?? r.headers["x-uniqueav-key"] ?? ""
         guard given == key else {
             if r.path == "/" || r.path.isEmpty {
                 return .html(MonitorPage.locked, status: 401)

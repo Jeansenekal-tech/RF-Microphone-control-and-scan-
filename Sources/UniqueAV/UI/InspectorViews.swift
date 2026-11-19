@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-import WaveDeskCore
+import UniqueAVCore
 
 struct InspectorPanel: View {
     @EnvironmentObject var state: AppState

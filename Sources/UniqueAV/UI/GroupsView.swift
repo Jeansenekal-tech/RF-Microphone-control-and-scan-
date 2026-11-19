@@ -1,6 +1,6 @@
 import SwiftUI
 import AppKit
-import WaveDeskCore
+import UniqueAVCore
 
 /// Time-of-use: groups of channels that are only on air at certain times.
 struct GroupsView: View {
