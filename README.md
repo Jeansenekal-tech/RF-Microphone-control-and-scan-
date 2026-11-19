@@ -1,7 +1,7 @@
 # WaveDesk – wireless mic control & RF scanning for macOS
 
 A native macOS app (SwiftUI, no browser) for running wireless microphone systems:
-control **Shure** and **Sennheiser** receivers over the network, scan with a **tinySA Ultra**,
+control **Shure** (including older UHF-R) and **Sennheiser** receivers over the network, scan with a **tinySA Ultra**,
 coordinate intermod-free frequencies, and keep an eye on everything during the show.
 
 > Status: first version, written without access to the hardware. The protocol, parsing and
@@ -75,6 +75,7 @@ swift test
 | Device | Protocol | Status |
 |---|---|---|
 | Shure ULX-D, QLX-D, SLX-D, Axient Digital | Command strings, TCP 2202 | Public protocol. Meter scaling follows ULX-D/QLX-D (RF = v−128 dBm, audio = v−50 dBFS); Axient Digital meters may need adjusting. |
+| Shure UHF-R (UR4S, UR4D) | Command strings with `* … *` framing, UDP 2202 | Based on Shure's UHF-R command string document. Gain offset and meter scaling are not yet verified (see `UHFRDevice.Tuning`). Enter the IP manually. |
 | Sennheiser ew G3 / G4 / 2000 / 9000 | ASCII over UDP 53212 | Commonly used protocol. RF/AF meters are mapped approximately. |
 | Sennheiser EW-DX EM 2 / EM 4 | SSCv2 (HTTPS REST, user `api`) | **Experimental.** Enable SSCv2 / third-party access and set a password on the receiver. Endpoint paths are in `EWDXDevice.Path`. |
 | Sennheiser Digital 6000 | SSC v1, JSON over UDP 45 | **Experimental.** |
@@ -98,7 +99,7 @@ swift test
 ```
 Sources/WaveDeskCore/   protocols, parsers, regions, schedule, frequency coordination (unit-tested)
 Sources/WaveDesk/       the macOS app
-  ShureDevice, SennheiserDevices, EWDXDevice, DemoDevice   receiver drivers
+  ShureDevice, UHFRDevice, SennheiserDevices, EWDXDevice, DemoDevice   receiver drivers
   SerialPort, SpectrumSources, AnalyzerController          tinySA + scanning + waterfall
   AppState, Health, Telemetry, ScanLibrary, Inventory      app logic and storage
   UI/                                                       SwiftUI screens

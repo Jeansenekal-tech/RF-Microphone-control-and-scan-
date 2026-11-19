@@ -24,12 +24,13 @@ enum SetValue {
 }
 
 enum DeviceKind: String, Codable, CaseIterable, Identifiable {
-    case shure, sennheiserG4, sennheiserEWDX, sennheiserSSC, demo
+    case shure, shureUHFR, sennheiserG4, sennheiserEWDX, sennheiserSSC, demo
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .shure: return "Shure (ULX-D, QLX-D, SLX-D, Axient Digital)"
+        case .shureUHFR: return "Shure UHF-R (UR4S / UR4D)"
         case .sennheiserG4: return "Sennheiser ew G3 / G4 / 2000 / 9000"
         case .sennheiserEWDX: return "Sennheiser EW-DX EM 2 / EM 4 (SSCv2, experimental)"
         case .sennheiserSSC: return "Sennheiser Digital 6000 (SSC, experimental)"
@@ -40,6 +41,7 @@ enum DeviceKind: String, Codable, CaseIterable, Identifiable {
     var short: String {
         switch self {
         case .shure: return "Shure"
+        case .shureUHFR: return "Shure UHF-R"
         case .sennheiserG4: return "Sennheiser G3/G4"
         case .sennheiserEWDX: return "Sennheiser EW-DX"
         case .sennheiserSSC: return "Sennheiser SSC"
@@ -51,6 +53,7 @@ enum DeviceKind: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .shure, .sennheiserG4, .demo: return [.name, .frequency, .gain, .mute]
         case .sennheiserSSC, .sennheiserEWDX: return [.name, .frequency, .mute]
+        case .shureUHFR: return [.name, .frequency, .gain]
         }
     }
 
@@ -124,6 +127,7 @@ class Device: ObservableObject, Identifiable {
     static func make(_ config: DeviceConfig) -> Device {
         switch config.kind {
         case .shure: return ShureDevice(config: config)
+        case .shureUHFR: return UHFRDevice(config: config)
         case .sennheiserG4: return SennheiserG4Device(config: config)
         case .sennheiserEWDX: return EWDXDevice(config: config)
         case .sennheiserSSC: return SennheiserSSCDevice(config: config)

@@ -28,6 +28,21 @@ final class ShureProtocolTests: XCTestCase {
     }
 }
 
+final class UHFRProtocolTests: XCTestCase {
+    func testStarFramesAndReport() {
+        let text = "* REPORT 1 CHAN_NAME {LEAD*VOX} ** REPORT 2 FREQUENCY 578350 *\r\n"
+        let frames = ShureProtocol.extractStarFrames(text)
+        XCTAssertEqual(frames, ["REPORT 1 CHAN_NAME {LEAD*VOX}", "REPORT 2 FREQUENCY 578350"])
+        XCTAssertEqual(ShureProtocol.parse(frames[1]), .rep(channel: 2, key: "FREQUENCY", values: ["578350"]))
+        XCTAssertEqual(ShureProtocol.parse(frames[0]), .rep(channel: 1, key: "CHAN_NAME", values: ["LEAD*VOX"]))
+    }
+
+    func testCommandConversion() {
+        XCTAssertEqual(ShureProtocol.uhfr(ShureProtocol.setFrequency(1, kHz: 578350)), "* SET 1 FREQUENCY 578350 *")
+        XCTAssertEqual(ShureProtocol.uhfr(ShureProtocol.frame("GET 2 TX_BAT")), "* GET 2 TX_BAT *")
+    }
+}
+
 final class TinySATests: XCTestCase {
     func testSegmentsCoverSpanOnGrid() {
         let segs = TinySAProtocol.segments(startHz: 470e6, stopHz: 694e6, stepHz: 25e3)

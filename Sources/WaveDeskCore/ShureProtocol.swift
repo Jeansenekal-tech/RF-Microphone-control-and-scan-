@@ -72,7 +72,7 @@ public enum ShureProtocol {
         let t = tokens(body)
         guard t.count >= 2 else { return nil }
         switch t[0].uppercased() {
-        case "REP":
+        case "REP", "REPORT":   // UHF-R answers with REPORT
             if let ch = Int(t[1]) {
                 guard t.count >= 3 else { return nil }
                 return .rep(channel: ch, key: t[2].uppercased(), values: Array(t.dropFirst(3)))
@@ -95,6 +95,42 @@ public enum ShureProtocol {
         return Sample(antenna: antenna,
                       rfDBm: nums.count >= 1 ? nums[0] - 128 : nil,
                       audioDBFS: nums.count >= 2 ? nums[1] - 50 : nil)
+    }
+
+    // MARK: UHF-R dialect
+    //
+    // UHF-R receivers (UR4S, UR4D) use the same command words over UDP port 2202, but frames
+    // are delimited with asterisks:   * GET 1 CHAN_NAME *   ->   * REPORT 1 CHAN_NAME {Vox} *
+
+    /// Frames in one UHF-R datagram, e.g. "* REPORT 1 FREQUENCY 578350 *".
+    public static func extractStarFrames(_ text: String) -> [String] {
+        var frames: [String] = []
+        var cur = ""
+        var inFrame = false
+        var inBrace = false
+        for ch in text {
+            if inFrame && ch == "{" { inBrace = true }
+            if inFrame && ch == "}" { inBrace = false }
+            if ch == "*" && !inBrace {
+                if inFrame {
+                    let f = cur.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !f.isEmpty { frames.append(f) }
+                    cur = ""
+                }
+                inFrame.toggle()
+            } else if inFrame {
+                cur.append(ch)
+            }
+        }
+        return frames
+    }
+
+    /// Converts a command built for the modern dialect ("< SET 1 ... >") to UHF-R ("* SET 1 ... *").
+    public static func uhfr(_ command: String) -> String {
+        var s = command.trimmingCharacters(in: .whitespaces)
+        if s.hasPrefix("<") { s.removeFirst() }
+        if s.hasSuffix(">") { s.removeLast() }
+        return "* \(s.trimmingCharacters(in: .whitespaces)) *"
     }
 
     // MARK: Commands

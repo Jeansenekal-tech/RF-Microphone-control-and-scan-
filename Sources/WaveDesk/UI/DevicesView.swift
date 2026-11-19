@@ -57,7 +57,7 @@ struct DevicesView: View {
                             }
                         }
                         if !state.discovering && state.discovered.isEmpty {
-                            Text("Checks every address on your local subnet for Shure's control port (TCP 2202). Sennheiser receivers need their IP entered manually (see the receiver's network menu).")
+                            Text("Checks every address on your local subnet for Shure's control port (TCP 2202). UHF-R and Sennheiser receivers need their IP entered manually (see the receiver's network menu).")
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
@@ -81,6 +81,7 @@ struct DevicesView: View {
     private func help(_ k: DeviceKind) -> String {
         switch k {
         case .shure: return "ULX-D, QLX-D, SLX-D, Axient Digital (and other Shure receivers using command strings on TCP 2202). Name, frequency, gain, mute, RF/audio meters, battery."
+        case .shureUHFR: return "UR4S / UR4D over the rear Ethernet port (UDP 2202, asterisk command strings). Name, frequency, gain, battery, RF/audio meters. Enter the IP shown in the receiver's network menu – UHF-R isn't found by Search."
         case .sennheiserG4: return "ew G3 / G4, 2000 and 9000 series over UDP 53212. Name, frequency, mute, AF out, RF/AF meters, battery."
         case .sennheiserEWDX: return "EW-DX EM 2 / EM 4 via Sennheiser's SSCv2 API (HTTPS). Experimental – please report what works."
         case .sennheiserSSC: return "Digital 6000 via SSC (JSON over UDP 45). Experimental."

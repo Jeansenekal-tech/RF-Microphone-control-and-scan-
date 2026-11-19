@@ -108,6 +108,24 @@ final class ShureDevice: Device {
 
     private func handle(_ body: String) {
         guard let msg = ShureProtocol.parse(body) else { return }
+        applyShure(msg)
+    }
+
+    override func set(_ value: SetValue, channel: Int) {
+        switch value {
+        case .name(let n): send(ShureProtocol.setName(channel, n))
+        case .frequency(let f): send(ShureProtocol.setFrequency(channel, kHz: f))
+        case .gain(let g): send(ShureProtocol.setGain(channel, dB: g))
+        case .mute(let m): send(ShureProtocol.setMute(channel, m))
+        }
+        send(ShureProtocol.getAll(channel))
+    }
+}
+
+extension Device {
+    /// Applies a parsed Shure REP/REPORT/SAMPLE message (shared by ULX-D-family and UHF-R drivers).
+    /// - Parameter gainOffset: raw AUDIO_GAIN value that equals 0 dB (18 on ULX-D/QLX-D/Axient).
+    func applyShure(_ msg: ShureProtocol.Message, gainOffset: Int = 18) {
         switch msg {
         case .rep(nil, let key, let values):
             let v = values.first?.trimmingCharacters(in: .whitespaces) ?? ""
@@ -120,8 +138,8 @@ final class ShureDevice: Device {
                 switch key {
                 case "CHAN_NAME": c.name = v
                 case "FREQUENCY": if let f = Int(v), f > 0 { c.freqKHz = f }
-                case "AUDIO_GAIN": if let g = Int(v) { c.gain = g - 18 }
-                case "BATT_BARS": if let b = Int(v) { c.battBars = b <= 5 ? b : nil }
+                case "AUDIO_GAIN": if let g = Int(v) { c.gain = g - gainOffset }
+                case "BATT_BARS", "TX_BAT": if let b = Int(v) { c.battBars = b <= 5 ? b : nil }
                 case "BATT_RUN_TIME": if let m = Int(v) { c.battMin = m < 65000 ? m : nil }
                 case "AUDIO_MUTE", "RX_MUTE": c.mute = v.uppercased() == "ON"
                 case "TX_TYPE": c.txType = ["UNKNOWN", "UNKN"].contains(v.uppercased()) ? "" : v
@@ -139,15 +157,5 @@ final class ShureDevice: Device {
                 c.audio = s.audioDBFS
             }
         }
-    }
-
-    override func set(_ value: SetValue, channel: Int) {
-        switch value {
-        case .name(let n): send(ShureProtocol.setName(channel, n))
-        case .frequency(let f): send(ShureProtocol.setFrequency(channel, kHz: f))
-        case .gain(let g): send(ShureProtocol.setGain(channel, dB: g))
-        case .mute(let m): send(ShureProtocol.setMute(channel, m))
-        }
-        send(ShureProtocol.getAll(channel))
     }
 }
