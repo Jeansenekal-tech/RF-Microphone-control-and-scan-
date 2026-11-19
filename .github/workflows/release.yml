@@ -81,6 +81,7 @@ jobs:
         if: steps.v.outputs.skip == 'false'
         run: |
           ditto -c -k --keepParent "build/Unique AV RF Scan Co-ord.app" "build/Unique-AV-RF-Scan-Co-ord.zip"
+          ./make_dmg.sh
 
       - name: Publish release
         if: steps.v.outputs.skip == 'false'
@@ -90,10 +91,10 @@ jobs:
           V="v${{ steps.v.outputs.version }}"
           TARGET="${{ steps.v.outputs.target }}"
           if [ "$TARGET" = "$GITHUB_REPOSITORY" ]; then
-            gh release create "$V" build/Unique-AV-RF-Scan-Co-ord.zip --target "$GITHUB_SHA" \
+            gh release create "$V" build/Unique-AV-RF-Scan-Co-ord.zip build/*.dmg --target "$GITHUB_SHA" \
               --title "Unique AV RF Scan Co-ord ${{ steps.v.outputs.version }}" --generate-notes
           else
-            gh release create "$V" build/Unique-AV-RF-Scan-Co-ord.zip --repo "$TARGET" \
+            gh release create "$V" build/Unique-AV-RF-Scan-Co-ord.zip build/*.dmg --repo "$TARGET" \
               --title "Unique AV RF Scan Co-ord ${{ steps.v.outputs.version }}" \
-              --notes "Download **Unique-AV-RF-Scan-Co-ord.zip**, unzip and move the app to Applications. Installed copies update themselves."
+              --notes "Download the **.dmg**, open it and drag the app onto **Applications**. Installed copies update themselves."
           fi

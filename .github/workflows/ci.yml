@@ -23,6 +23,21 @@ jobs:
         run: swift test 2>&1 | tee test.log
       - name: Build app bundle
         run: ./build_app.sh
+      - name: Build DMG installer
+        run: |
+          ./make_dmg.sh
+          DMG=$(ls build/*.dmg)
+          MNT=$(hdiutil attach "$DMG" -nobrowse -noautoopen | awk -F'\t' '/\/Volumes\// {print $NF}' | tail -1)
+          ls -la "$MNT"
+          test -x "$MNT/Unique AV RF Scan Co-ord.app/Contents/MacOS/UniqueAV" && echo "DMG contains the app"
+          test -L "$MNT/Applications" && echo "DMG has the Applications shortcut"
+          hdiutil detach "$MNT" -quiet
+          mkdir -p dmg && cp "$DMG" dmg/
+      - name: Upload DMG (developer build, licensing off)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Unique-AV-RF-Scan-Co-ord-dmg
+          path: dmg/*.dmg
       - name: Smoke test (launch app in demo mode, query web server, screenshots)
         run: |
           mkdir -p smoke

@@ -51,6 +51,15 @@ It installs Apple's build tools if they're missing (run it again after they fini
 in **Applications** and opens it. Use `./install.sh --demo` to open it with a demo receiver and simulated analyzer.
 Run the same command again to update after pulling new code.
 
+### Or use the DMG installer
+
+```bash
+./build_app.sh && ./make_dmg.sh
+```
+
+This creates `build/Unique-AV-RF-Scan-Co-ord-<version>.dmg`. Open it and drag the app onto **Applications**.
+Every release on GitHub includes the DMG.
+
 ## Build and run (on your Mac)
 
 You need macOS 13 Ventura or newer and Apple's developer tools:
