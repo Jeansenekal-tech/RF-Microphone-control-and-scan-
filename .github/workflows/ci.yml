@@ -1,0 +1,25 @@
+name: Build & test
+
+on:
+  push:
+    branches: ['**']
+    tags-ignore: ['v*']
+  pull_request:
+
+defaults:
+  run:
+    shell: bash   # bash -eo pipefail, so a failing build fails the step even through tee
+
+jobs:
+  macos:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Toolchain
+        run: swift --version
+      - name: Build
+        run: swift build 2>&1 | tee build.log
+      - name: Unit tests
+        run: swift test 2>&1 | tee test.log
+      - name: Build app bundle
+        run: ./build_app.sh
